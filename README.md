@@ -28,8 +28,8 @@ How do I use it?
 3. On Activity/Fragment creation, attach a Smoothie instance to your
    ListView/GridView passing the target view and your engine:
 
-ListView listView = (ListView) findViewById(R.id.listview);
-Smoothie smoothie = new Smoothie(listView, new YourItemEngine());
+    ListView listView = (ListView) findViewById(R.id.listview);
+    Smoothie smoothie = new Smoothie(listView, new YourItemEngine());
 
 4. On your adapter's getView(), call Smoothie's loadItem() passing the item
    view and the loading parameters necessary to load the item asynchronously.
