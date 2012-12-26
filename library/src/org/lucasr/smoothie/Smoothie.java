@@ -11,7 +11,7 @@ import android.widget.AbsListView;
 import android.widget.AbsListView.OnScrollListener;
 import android.widget.AdapterView;
 
-public class Smoothie {
+public final class Smoothie {
     private static final int MESSAGE_UPDATE_ITEMS = 1;
     private static final int DELAY_SHOW_ITEMS = 550;
 
@@ -77,7 +77,7 @@ public class Smoothie {
         mHandler.sendMessage(msg);
     }
 
-    public void loadItem(View itemView, Object itemParams) {
+    public final void loadItem(View itemView, Object itemParams) {
         ItemState itemState = mItemLoader.getItemState(itemView);
 
         itemState.itemParams = itemParams;
