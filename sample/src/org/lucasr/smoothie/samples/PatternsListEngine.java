@@ -11,9 +11,6 @@ import android.graphics.drawable.TransitionDrawable;
 import android.view.View;
 
 public class PatternsListEngine extends ItemEngine {
-    public PatternsListEngine() {
-    }
-
     @Override
     public void resetItem(View itemView) {
         ViewHolder holder = (ViewHolder) itemView.getTag();
