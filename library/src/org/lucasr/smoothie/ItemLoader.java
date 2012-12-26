@@ -15,7 +15,7 @@ import android.view.View;
 class ItemLoader {
     private static final String LOGTAG = "SmoothieItemLoader";
     private static final boolean ENABLE_LOGGING = false;
-    
+
     private final ItemEngine mItemEngine;
     private final Handler mHandler;
     private final Map<View, ItemState> mItemStates;
@@ -173,6 +173,7 @@ class ItemLoader {
             mRequest = request;
         }
 
+        @Override
         public void run() {
             if (itemViewReused(mRequest)) {
                 return;
@@ -207,6 +208,7 @@ class ItemLoader {
             mFromMemory = fromMemory;
         }
 
+        @Override
         public void run() {
             View itemView = mRequest.itemView.get();
 
