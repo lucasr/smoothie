@@ -9,6 +9,7 @@ import android.view.View;
 import android.view.View.OnTouchListener;
 import android.widget.AbsListView;
 import android.widget.AbsListView.OnScrollListener;
+import android.widget.Adapter;
 import android.widget.AdapterView;
 
 public final class Smoothie {
@@ -54,15 +55,19 @@ public final class Smoothie {
         }
 
         mItemLoader.clearPrefetchRequests();
-/*
+
         int lastFetchedPosition = mList.getFirstVisiblePosition() + count - 1;
         if (lastFetchedPosition > 0) {
             Adapter adapter = mList.getAdapter();
-            for (int i = lastFetchedPosition; i < lastFetchedPosition + 10 && i < adapter.getCount(); i++) {
-                mItemLoader.preloadItem(adapter.getItem(i));
+            final int adapterCount = adapter.getCount();
+
+            for (int i = lastFetchedPosition; i < lastFetchedPosition + 10 && i < adapterCount; i++) {
+                Object itemParams = mItemEngine.getPreloadItemParams(adapter, i);
+                if (itemParams != null) {
+                    mItemLoader.preloadItem(itemParams);
+                }
             }
         }
-*/
 
         mList.invalidate();
     }
