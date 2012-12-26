@@ -22,6 +22,23 @@
 			<artifactId>android</artifactId>
 		</dependency>
 		<dependency>
+			<groupId>com.jakewharton</groupId>
+			<artifactId>disklrucache</artifactId>
+			<type>jar</type>
+			<version>1.2.1</version>
+		</dependency>
+		<dependency>
+			<groupId>com.google.android</groupId>
+			<artifactId>support-v4</artifactId>
+			<version>r7</version>
+		</dependency>
+		<dependency>
+			<groupId>com.github.chrisbanes.bitmapcache</groupId>
+			<artifactId>library</artifactId>
+			<type>jar</type>
+			<version>2.0</version>
+		</dependency>
+		<dependency>
 			<groupId>${project.groupId}</groupId>
 			<artifactId>library</artifactId>
 			<type>jar</type>

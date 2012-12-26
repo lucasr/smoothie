@@ -11,9 +11,6 @@ import java.net.URL;
 import org.json.JSONArray;
 import org.json.JSONException;
 
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-
 public class HttpHelper {
     static private String convertStreamToString(InputStream is) {
         BufferedReader reader = new BufferedReader(new InputStreamReader(is));
@@ -64,9 +61,8 @@ public class HttpHelper {
         return json;
     }
 
-    static public Bitmap loadImage(String url) {
+    static public InputStream loadImage(String url) {
         HttpURLConnection connection = null;
-        Bitmap bitmap = null;
         InputStream is = null;
 
         try {
@@ -74,23 +70,10 @@ public class HttpHelper {
             connection.setConnectTimeout(15000);
 
             is = new BufferedInputStream(connection.getInputStream());
-            bitmap = BitmapFactory.decodeStream(is);
         } catch (IOException ioe) {
             ioe.printStackTrace();
-        } finally {
-            try {
-                if (is != null) {
-                    is.close();
-                }
-            } catch (IOException ioe) {
-                ioe.printStackTrace();
-            }
-
-            if (connection != null) {
-                connection.disconnect();
-            }
         }
 
-        return bitmap;
+        return is;
     }
 }

@@ -7,6 +7,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.lucasr.smoothie.Smoothie;
 
+import uk.co.senab.bitmapcache.BitmapLruCache;
 import android.app.Activity;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -16,17 +17,18 @@ public class MainActivity extends Activity {
     private ListView mListView;
     private Smoothie mSmoothie;
 
-	@Override
-	public void onCreate(Bundle savedInstanceState) {
-		super.onCreate(savedInstanceState);
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
 
-		setContentView(R.layout.main_activity);
+        setContentView(R.layout.main_activity);
+        mListView = (ListView) findViewById(R.id.list);
 
-		mListView = (ListView) findViewById(R.id.list);
-	    mSmoothie = new Smoothie(mListView, new PatternsListEngine());
+        BitmapLruCache cache = App.getInstance(this).getBitmapCache();
+        mSmoothie = new Smoothie(mListView, new PatternsListEngine(cache));
 
-		new LoadPatternsListTask().execute();
-	}
+        new LoadPatternsListTask().execute();
+    }
 
     private class LoadPatternsListTask extends AsyncTask<Void, Void, ArrayList<String>> {
         static final int NUM_PATTERNS = 40;

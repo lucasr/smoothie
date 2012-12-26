@@ -40,8 +40,6 @@ Want to help?
 
 Here's a list of pending stuff on the library:
 
-* Implement a reference engine with async image loading based on
-  Android-BitmapCache.
 * Proper prefetch support with a custom priority queue on ItemLoader's executor
   service.
 

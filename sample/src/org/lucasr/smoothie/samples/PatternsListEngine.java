@@ -3,6 +3,8 @@ package org.lucasr.smoothie.samples;
 import org.lucasr.smoothie.ItemEngine;
 import org.lucasr.smoothie.samples.PatternsListAdapter.ViewHolder;
 
+import uk.co.senab.bitmapcache.BitmapLruCache;
+import uk.co.senab.bitmapcache.CacheableBitmapWrapper;
 import android.graphics.Bitmap;
 import android.graphics.Shader.TileMode;
 import android.graphics.drawable.BitmapDrawable;
@@ -11,6 +13,22 @@ import android.graphics.drawable.TransitionDrawable;
 import android.view.View;
 
 public class PatternsListEngine extends ItemEngine {
+    final BitmapLruCache mCache;
+
+    public PatternsListEngine(BitmapLruCache cache) {
+        mCache = cache;
+    }
+
+    @Override
+    public boolean isItemInMemory(Object itemParams) {
+        return (mCache.getFromMemoryCache((String) itemParams) != null);
+    }
+
+    @Override
+    public Object loadItemFromMemory(Object itemParams) {
+        return mCache.getFromMemoryCache((String) itemParams);
+    }
+
     @Override
     public void resetItem(View itemView) {
         ViewHolder holder = (ViewHolder) itemView.getTag();
@@ -20,14 +38,28 @@ public class PatternsListEngine extends ItemEngine {
 
     @Override
     public Object loadItem(Object itemParams) {
-        return HttpHelper.loadImage((String) itemParams);
+        String url = (String) itemParams;
+
+        CacheableBitmapWrapper wrapper = mCache.get(url);
+        if (wrapper == null) {
+            wrapper = mCache.put(url, HttpHelper.loadImage(url));
+        }
+
+        return wrapper;
     }
 
     @Override
     public void displayItem(View itemView, Object item) {
         ViewHolder holder = (ViewHolder) itemView.getTag();
 
-        BitmapDrawable patternDrawable = new BitmapDrawable(itemView.getResources(), (Bitmap) item);
+        if (item == null) {
+            holder.title.setText("Failed");
+            return;
+        }
+
+        CacheableBitmapWrapper wrapper = (CacheableBitmapWrapper) item;
+
+        BitmapDrawable patternDrawable = new BitmapDrawable(itemView.getResources(), (Bitmap) wrapper.getBitmap());
         patternDrawable.setTileModeXY(TileMode.REPEAT, TileMode.REPEAT);
 
         BitmapDrawable emptyDrawable = new BitmapDrawable(itemView.getResources());
