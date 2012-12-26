@@ -5,7 +5,6 @@ import org.lucasr.smoothie.samples.PatternsListAdapter.ViewHolder;
 
 import uk.co.senab.bitmapcache.BitmapLruCache;
 import uk.co.senab.bitmapcache.CacheableBitmapWrapper;
-import android.graphics.Bitmap;
 import android.graphics.Shader.TileMode;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
@@ -59,7 +58,7 @@ public class PatternsListEngine extends ItemEngine {
 
         CacheableBitmapWrapper wrapper = (CacheableBitmapWrapper) item;
 
-        BitmapDrawable patternDrawable = new BitmapDrawable(itemView.getResources(), (Bitmap) wrapper.getBitmap());
+        BitmapDrawable patternDrawable = new BitmapDrawable(itemView.getResources(), wrapper.getBitmap());
         patternDrawable.setTileModeXY(TileMode.REPEAT, TileMode.REPEAT);
 
         if (fromMemory) {
