@@ -1,6 +1,7 @@
 package org.lucasr.smoothie;
 
 import android.view.View;
+import android.widget.Adapter;
 
 public abstract class ItemEngine {
     public void resetItem(View itemView) {
@@ -16,6 +17,10 @@ public abstract class ItemEngine {
 
     public Object preloadItem(Object itemParams) {
         return loadItem(itemParams);
+    }
+
+    public Object getPreloadItemParams(Adapter adapter, int position) {
+        return null;
     }
 
     public abstract Object loadItem(Object itemParams);
