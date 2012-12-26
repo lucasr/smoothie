@@ -84,7 +84,7 @@ public class Smoothie {
         boolean itemInMemory = mItemEngine.isItemInMemory(itemParams);
 
         if (!itemInMemory) {
-            mItemEngine.resetItemView(itemView);
+            mItemEngine.resetItem(itemView);
         }
 
         boolean shouldDisplayThumbnail =

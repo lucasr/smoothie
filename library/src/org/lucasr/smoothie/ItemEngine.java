@@ -3,7 +3,7 @@ package org.lucasr.smoothie;
 import android.view.View;
 
 public abstract class ItemEngine {
-    public void resetItemView(View itemView) {
+    public void resetItem(View itemView) {
     }
 
     public boolean isItemInMemory(Object itemParams) {
