@@ -15,11 +15,11 @@ public final class Smoothie {
     private static final int MESSAGE_UPDATE_ITEMS = 1;
     private static final int DELAY_SHOW_ITEMS = 550;
 
-    private AbsListView mList;
+    private final AbsListView mList;
 
-    private ItemLoader mItemLoader;
-    private ItemEngine mItemEngine;
-    private Handler mHandler;
+    private final ItemLoader mItemLoader;
+    private final ItemEngine mItemEngine;
+    private final Handler mHandler;
 
     private int mScrollState;
     private boolean mPendingItemsUpdate;
