@@ -22,7 +22,7 @@ How do I use it?
 
 1. Add Smoothie's jar as a dependency to your project.
 
-2. Implement an ItemEngine. You're only required to implement two methods:
+2. Implement an ItemEngine. You're only required to override two methods:
    `loadItem()` and `displayItem()`. You can override more methods if you
    want to handle loading items from memory, resetting item views, etc.
 
@@ -35,6 +35,10 @@ How do I use it?
 
 4. On your adapter's getView(), call Smoothie's `loadItem()` passing the item
    view and the parameters necessary to load the item asynchronously.
+
+The sample app has an example of an ItemEngine powered by
+[Android-BitmapCache](https://github.com/chrisbanes/Android-BitmapCache) that
+fades images in as they finish loading on a ListView.
 
 Want to help?
 =============
