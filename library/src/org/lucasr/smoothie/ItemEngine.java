@@ -20,5 +20,5 @@ public abstract class ItemEngine {
 
     public abstract Object loadItem(Object itemParams);
 
-    public abstract void displayItem(View itemView, Object item);
+    public abstract void displayItem(View itemView, Object item, boolean fromMemory);
 }

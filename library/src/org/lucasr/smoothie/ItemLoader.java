@@ -69,7 +69,7 @@ class ItemLoader {
             }
 
             request.item = new SoftReference<Object>(item);
-            mHandler.post(new DisplayItemRunnable(request));
+            mHandler.post(new DisplayItemRunnable(request, true));
 
             return;
         }
@@ -189,7 +189,7 @@ class ItemLoader {
                     Log.d(LOGTAG, "Done loading image: " + mRequest.itemParams);
                 }
 
-                mHandler.post(new DisplayItemRunnable(mRequest));
+                mHandler.post(new DisplayItemRunnable(mRequest, false));
             } else {
                 if (ENABLE_LOGGING) {
                     Log.d(LOGTAG, "Done prefetching: " + mRequest.itemParams);
@@ -200,9 +200,11 @@ class ItemLoader {
 
     private class DisplayItemRunnable implements Runnable {
         private final ItemRequest mRequest;
+        private final boolean mFromMemory;
 
-        public DisplayItemRunnable(ItemRequest request) {
+        public DisplayItemRunnable(ItemRequest request, boolean fromMemory) {
             mRequest = request;
+            mFromMemory = fromMemory;
         }
 
         public void run() {
@@ -217,7 +219,7 @@ class ItemLoader {
 
             Object item = mRequest.item.get();
             if (item != null) {
-                mItemEngine.displayItem(itemView, item);
+                mItemEngine.displayItem(itemView, item, mFromMemory);
                 if (itemView != null) {
                     getItemState(itemView).itemParams = null;
                 }

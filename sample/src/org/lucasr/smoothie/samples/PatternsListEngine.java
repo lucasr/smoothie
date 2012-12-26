@@ -49,7 +49,7 @@ public class PatternsListEngine extends ItemEngine {
     }
 
     @Override
-    public void displayItem(View itemView, Object item) {
+    public void displayItem(View itemView, Object item, boolean fromMemory) {
         ViewHolder holder = (ViewHolder) itemView.getTag();
 
         if (item == null) {
@@ -62,13 +62,17 @@ public class PatternsListEngine extends ItemEngine {
         BitmapDrawable patternDrawable = new BitmapDrawable(itemView.getResources(), (Bitmap) wrapper.getBitmap());
         patternDrawable.setTileModeXY(TileMode.REPEAT, TileMode.REPEAT);
 
-        BitmapDrawable emptyDrawable = new BitmapDrawable(itemView.getResources());
+        if (fromMemory) {
+            holder.image.setImageDrawable(patternDrawable);
+        } else {
+            BitmapDrawable emptyDrawable = new BitmapDrawable(itemView.getResources());
 
-        TransitionDrawable fadeInDrawable =
-                new TransitionDrawable(new Drawable[] { emptyDrawable, patternDrawable });
+            TransitionDrawable fadeInDrawable =
+                    new TransitionDrawable(new Drawable[] { emptyDrawable, patternDrawable });
 
-        holder.image.setImageDrawable(fadeInDrawable);
-        fadeInDrawable.startTransition(300);
+            holder.image.setImageDrawable(fadeInDrawable);
+            fadeInDrawable.startTransition(200);
+        }
 
         holder.title.setText("Loaded");
     }
