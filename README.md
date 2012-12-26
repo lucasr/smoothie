@@ -15,7 +15,7 @@ Features
   stops loading items on fling, enables loading when panning with finger
   down, etc.
 * Prefetch items beyond the currently visible items to reduce the number of
-  placeholder items while scrolling.
+  placeholder items while scrolling (under development).
 
 How do I use it?
 ================
@@ -23,7 +23,8 @@ How do I use it?
 1. Add Smoothie's jar as a dependency to your project.
 
 2. Implement an ItemEngine. You're only required to implement two methods:
-   loadItem() and displayItem().
+   `loadItem()` and `displayItem()`. You can override more methods if you
+   want to handle loading items from memory, resetting item views, etc.
 
 3. On Activity/Fragment creation, attach a Smoothie instance to your
    ListView/GridView passing the target view and your engine:
@@ -32,8 +33,8 @@ How do I use it?
    Smoothie smoothie = new Smoothie(yourListOrGridView, new YourItemEngine());
    ```
 
-4. On your adapter's getView(), call Smoothie's loadItem() passing the item
-   view and the loading parameters necessary to load the item asynchronously.
+4. On your adapter's getView(), call Smoothie's `loadItem()` passing the item
+   view and the parameters necessary to load the item asynchronously.
 
 Want to help?
 =============
