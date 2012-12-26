@@ -54,7 +54,7 @@ public final class Smoothie {
             }
         }
 
-        mItemLoader.clearPrefetchRequests();
+        mItemLoader.clearPreloadRequests();
 
         int lastFetchedPosition = mList.getFirstVisiblePosition() + count - 1;
         if (lastFetchedPosition > 0) {

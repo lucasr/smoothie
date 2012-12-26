@@ -19,7 +19,7 @@ class ItemLoader {
     private final ItemEngine mItemEngine;
     private final Handler mHandler;
     private final Map<View, ItemState> mItemStates;
-    private final Map<Object, ItemRequest> mPrefetchRequests;
+    private final Map<Object, ItemRequest> mPreloadRequests;
     private final ExecutorService mExecutorService;
 
     class ItemState {
@@ -31,7 +31,7 @@ class ItemLoader {
         mItemEngine = itemEngine;
         mHandler = handler;
         mItemStates = Collections.synchronizedMap(new WeakHashMap<View, ItemState>());
-        mPrefetchRequests = Collections.synchronizedMap(new WeakHashMap<Object, ItemRequest>());
+        mPreloadRequests = Collections.synchronizedMap(new WeakHashMap<Object, ItemRequest>());
         mExecutorService = Executors.newFixedThreadPool(2);
     }
 
@@ -45,27 +45,27 @@ class ItemLoader {
             return;
         }
 
-        ItemRequest request = mPrefetchRequests.get(itemParams);
+        ItemRequest request = mPreloadRequests.get(itemParams);
         if (request == null) {
             if (ENABLE_LOGGING) {
-                Log.d(LOGTAG, "No prefetch request, creating new");
+                Log.d(LOGTAG, "No preload request, creating new");
             }
 
             request = new ItemRequest(itemView, itemParams);
         } else {
             if (ENABLE_LOGGING) {
-                Log.d(LOGTAG, "There's a pending prefetch request, reusing");
+                Log.d(LOGTAG, "There's a pending preload request, reusing");
             }
 
             request.itemView = new SoftReference<View>(itemView);
         }
 
-        mPrefetchRequests.remove(itemParams);
+        mPreloadRequests.remove(itemParams);
 
         Object item = mItemEngine.loadItemFromMemory(itemParams);
         if (item != null) {
             if (ENABLE_LOGGING) {
-                Log.d(LOGTAG, "Item is prefetched, quickly displaying");
+                Log.d(LOGTAG, "Item is preloaded, quickly displaying");
             }
 
             request.item = new SoftReference<Object>(item);
@@ -78,9 +78,9 @@ class ItemLoader {
     }
 
     void preloadItem(Object itemParams) {
-        if (mPrefetchRequests.containsKey(itemParams)) {
+        if (mPreloadRequests.containsKey(itemParams)) {
             if (ENABLE_LOGGING) {
-                Log.d(LOGTAG, "Pending prefetch request, bailing");
+                Log.d(LOGTAG, "Pending preload request, bailing");
             }
 
             return;
@@ -95,16 +95,16 @@ class ItemLoader {
         }
 
         ItemRequest request = new ItemRequest(itemParams);
-        mPrefetchRequests.put(itemParams, request);
+        mPreloadRequests.put(itemParams, request);
 
         request.loadItemTask = mExecutorService.submit(new LoadItemRunnable(request));
     }
 
-    void clearPrefetchRequests() {
-        for (Map.Entry<Object, ItemRequest> entry : mPrefetchRequests.entrySet()) {
+    void clearPreloadRequests() {
+        for (Map.Entry<Object, ItemRequest> entry : mPreloadRequests.entrySet()) {
             ItemRequest request = entry.getValue();
             if (ENABLE_LOGGING) {
-                Log.d(LOGTAG, "Canceling prefetch request for pattern: " + request.itemParams);
+                Log.d(LOGTAG, "Canceling preload request for pattern: " + request.itemParams);
             }
 
             if (request.loadItemTask != null) {
@@ -112,7 +112,7 @@ class ItemLoader {
             }
         }
 
-        mPrefetchRequests.clear();
+        mPreloadRequests.clear();
     }
 
     ItemState getItemState(View itemView) {
@@ -193,7 +193,7 @@ class ItemLoader {
                 mHandler.post(new DisplayItemRunnable(mRequest, false));
             } else {
                 if (ENABLE_LOGGING) {
-                    Log.d(LOGTAG, "Done prefetching: " + mRequest.itemParams);
+                    Log.d(LOGTAG, "Done preloading: " + mRequest.itemParams);
                 }
             }
         }
