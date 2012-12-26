@@ -10,6 +10,7 @@ import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.TransitionDrawable;
 import android.view.View;
+import android.widget.Adapter;
 
 public class PatternsListEngine extends ItemEngine {
     final BitmapLruCache mCache;
@@ -33,6 +34,11 @@ public class PatternsListEngine extends ItemEngine {
         ViewHolder holder = (ViewHolder) itemView.getTag();
         holder.image.setImageDrawable(null);
         holder.title.setText("Loading");
+    }
+
+    @Override
+    public Object getPreloadItemParams(Adapter adapter, int position) {
+        return adapter.getItem(position);
     }
 
     @Override
