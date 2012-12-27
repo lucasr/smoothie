@@ -16,7 +16,7 @@ public final class Smoothie {
     private static final int MESSAGE_UPDATE_ITEMS = 1;
     private static final int DELAY_SHOW_ITEMS = 550;
 
-    private final AbsListView mList;
+    private final AbsListView mAbsListView;
 
     private final ItemLoader mItemLoader;
     private final ItemEngine mItemEngine;
@@ -29,31 +29,30 @@ public final class Smoothie {
     private boolean mPendingItemsUpdate;
     private boolean mFingerUp;
 
-    private Smoothie(AbsListView list, ItemEngine itemEngine, boolean preloadItemsEnabled,
+    private Smoothie(AbsListView absListView, ItemEngine itemEngine, boolean preloadItemsEnabled,
             int preloadItemsCount, int threadPoolSize) {
-        mList = list;
-
-        mScrollState = OnScrollListener.SCROLL_STATE_IDLE;
-        mHandler = new ItemsListHandler();
-
-        mItemLoader = new ItemLoader(itemEngine, mHandler, threadPoolSize);
+        mAbsListView = absListView;
         mItemEngine = itemEngine;
+
+        mHandler = new ItemsListHandler();
+        mItemLoader = new ItemLoader(itemEngine, mHandler, threadPoolSize);
 
         mPreloadItemsEnabled = preloadItemsEnabled;
         mPreloadItemsCount = preloadItemsCount;
 
-        mList.setOnScrollListener(new ScrollManager());
-        mList.setOnTouchListener(new FingerTracker());
-        mList.setOnItemSelectedListener(new SelectionTracker());
+        mScrollState = OnScrollListener.SCROLL_STATE_IDLE;
+        mAbsListView.setOnScrollListener(new ScrollManager());
+        mAbsListView.setOnTouchListener(new FingerTracker());
+        mAbsListView.setOnItemSelectedListener(new SelectionTracker());
     }
 
     private void updateItems() {
         mPendingItemsUpdate = false;
 
-        final int count = mList.getChildCount();
+        final int count = mAbsListView.getChildCount();
 
         for (int i = 0; i < count; i++) {
-            final View itemView = mList.getChildAt(i);
+            final View itemView = mAbsListView.getChildAt(i);
             final ItemState itemState = mItemLoader.getItemState(itemView);
 
             if (itemState.itemParams != null && itemState.shouldLoadItem) {
@@ -65,9 +64,9 @@ public final class Smoothie {
         if (mPreloadItemsEnabled) {
             mItemLoader.clearPreloadRequests();
 
-            int lastFetchedPosition = mList.getFirstVisiblePosition() + count - 1;
+            int lastFetchedPosition = mAbsListView.getFirstVisiblePosition() + count - 1;
             if (lastFetchedPosition > 0) {
-                Adapter adapter = mList.getAdapter();
+                Adapter adapter = mAbsListView.getAdapter();
                 final int adapterCount = adapter.getCount();
 
                 for (int i = lastFetchedPosition;
@@ -81,7 +80,7 @@ public final class Smoothie {
             }
         }
 
-        mList.invalidate();
+        mAbsListView.invalidate();
     }
 
     private void postUpdateItems() {
