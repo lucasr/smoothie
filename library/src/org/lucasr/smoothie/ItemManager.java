@@ -13,7 +13,7 @@ import android.widget.AbsListView.OnScrollListener;
 import android.widget.Adapter;
 import android.widget.AdapterView;
 
-public final class Smoothie {
+public final class ItemManager {
     private static final int MESSAGE_UPDATE_ITEMS = 1;
     private static final int DELAY_SHOW_ITEMS = 550;
 
@@ -31,7 +31,7 @@ public final class Smoothie {
     private boolean mPendingItemsUpdate;
     private boolean mFingerUp;
 
-    private Smoothie(AbsListView absListView, ItemEngine itemEngine, boolean preloadItemsEnabled,
+    private ItemManager(AbsListView absListView, ItemEngine itemEngine, boolean preloadItemsEnabled,
             int preloadItemsCount, int threadPoolSize) {
         mAbsListView = absListView;
         mItemEngine = itemEngine;
@@ -90,7 +90,7 @@ public final class Smoothie {
 
     private void postUpdateItems() {
         Message msg = mHandler.obtainMessage(MESSAGE_UPDATE_ITEMS,
-                                             Smoothie.this);
+                                             ItemManager.this);
 
         mHandler.removeMessages(MESSAGE_UPDATE_ITEMS);
         mPendingItemsUpdate = true;
@@ -128,7 +128,7 @@ public final class Smoothie {
 
             if (stoppedFling) {
                 final Message msg = mHandler.obtainMessage(MESSAGE_UPDATE_ITEMS,
-                                                           Smoothie.this);
+                                                           ItemManager.this);
 
                 mHandler.removeMessages(MESSAGE_UPDATE_ITEMS);
 
@@ -185,7 +185,7 @@ public final class Smoothie {
         public void handleMessage(Message msg) {
             switch (msg.what) {
                 case MESSAGE_UPDATE_ITEMS:
-                    Smoothie smoothie = (Smoothie) msg.obj;
+                    ItemManager smoothie = (ItemManager) msg.obj;
                     smoothie.updateItems();
                     break;
             }
@@ -228,8 +228,8 @@ public final class Smoothie {
             return this;
         }
 
-        public Smoothie build() {
-            return new Smoothie(mAbsListView, mItemEngine, mPreloadItemsEnabled,
+        public ItemManager build() {
+            return new ItemManager(mAbsListView, mItemEngine, mPreloadItemsEnabled,
                     mPreloadItemsCount, mThreadPoolSize);
         }
     }

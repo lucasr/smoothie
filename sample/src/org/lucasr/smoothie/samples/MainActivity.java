@@ -5,7 +5,7 @@ import java.util.ArrayList;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
-import org.lucasr.smoothie.Smoothie;
+import org.lucasr.smoothie.ItemManager;
 
 import uk.co.senab.bitmapcache.BitmapLruCache;
 import android.app.Activity;
@@ -15,7 +15,7 @@ import android.widget.ListView;
 
 public class MainActivity extends Activity {
     private ListView mListView;
-    private Smoothie mSmoothie;
+    private ItemManager mItemManager;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -27,10 +27,10 @@ public class MainActivity extends Activity {
         BitmapLruCache cache = App.getInstance(this).getBitmapCache();
         PatternsListEngine engine = new PatternsListEngine(cache);
 
-        Smoothie.Builder builder = new Smoothie.Builder(mListView, engine);
+        ItemManager.Builder builder = new ItemManager.Builder(mListView, engine);
         builder.setPreloadItemsEnabled(true).setPreloadItemsCount(5);
         builder.setThreadPoolSize(4);
-        mSmoothie = builder.build();
+        mItemManager = builder.build();
 
         new LoadPatternsListTask().execute();
     }
@@ -60,7 +60,7 @@ public class MainActivity extends Activity {
 
        @Override
        protected void onPostExecute(ArrayList<String> urls) {
-           PatternsListAdapter adapter = new PatternsListAdapter(MainActivity.this, urls, mSmoothie);
+           PatternsListAdapter adapter = new PatternsListAdapter(MainActivity.this, urls, mItemManager);
            mListView.setAdapter(adapter);
        }
    }
