@@ -25,16 +25,20 @@ How do I use it?
 
 2. Implement an ItemEngine. You're only required to override two methods:
    `loadItem()` and `displayItem()`. You can override more methods if you
-   want to handle loading items from memory, resetting item views, etc.
+   want to handle loading items from memory, preloading items, resetting
+   item views, etc.
 
 3. On Activity/Fragment creation, attach a Smoothie instance to your
-   ListView/GridView passing the target view and your engine:
+   ListView/GridView:
 
    ```java
-   Smoothie smoothie = new Smoothie(yourListOrGridView, new YourItemEngine());
+   Smoothie.Builder builder = new Smoothie.Builder(yourListOrGridView, yourItemEngine);
+   builder.setPreloadItemsEnabled(true).setPreloadItemsCount(5);
+   builder.setThreadPoolSize(4);
+   Smoothie s = builder.build();
    ```
 
-4. On your adapter's getView(), call Smoothie's `loadItem()` passing the item
+4. On your adapter's `getView()`, call Smoothie's `loadItem()` passing the item
    view and the parameters necessary to load the item asynchronously.
 
 The sample app has an example of an ItemEngine powered by
