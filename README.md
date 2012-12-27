@@ -16,29 +16,29 @@ Features
   stops loading items on fling, enables loading when panning with finger
   down, etc.
 * Prefetch items beyond the currently visible items to reduce the number of
-  placeholder items while scrolling (under development).
+  placeholder-type items while scrolling.
 
 How do I use it?
 ================
 
 1. Add Smoothie's jar as a dependency to your project.
 
-2. Implement an ItemEngine. You're only required to override two methods:
+2. Implement an `ItemEngine`. You're only required to override two methods:
    `loadItem()` and `displayItem()`. You can override more methods if you
    want to handle loading items from memory, preloading items, resetting
    item views, etc.
 
-3. On Activity/Fragment creation, attach a Smoothie instance to your
+3. On Activity/Fragment creation, attach an `ItemManager` instance to your
    ListView/GridView:
 
    ```java
-   Smoothie.Builder builder = new Smoothie.Builder(yourListOrGridView, yourItemEngine);
+   ItemManager.Builder builder = new ItemManager.Builder(yourListOrGridView, yourItemEngine);
    builder.setPreloadItemsEnabled(true).setPreloadItemsCount(5);
    builder.setThreadPoolSize(4);
-   Smoothie s = builder.build();
+   ItemManager s = builder.build();
    ```
 
-4. On your adapter's `getView()`, call Smoothie's `loadItem()` passing the item
+4. On your adapter's `getView()`, call `ItemManager`'s `loadItem()` passing the item
    view and the parameters necessary to load the item asynchronously.
 
 The sample app has an example of an ItemEngine powered by
@@ -47,11 +47,6 @@ fades images in as they finish loading on a ListView.
 
 Want to help?
 =============
-
-Here's a list of pending stuff on the library:
-
-* Proper prefetch support with a custom priority queue on ItemLoader's executor
-  service.
 
 File new issues to discuss specific aspects of the API and to propose new
 features.
