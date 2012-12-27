@@ -2,13 +2,19 @@ package org.lucasr.smoothie;
 
 import java.lang.ref.SoftReference;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.WeakHashMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Future;
+import java.util.concurrent.FutureTask;
+import java.util.concurrent.PriorityBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 import android.os.Handler;
+import android.os.Process;
+import android.os.SystemClock;
 import android.util.Log;
 import android.view.View;
 
@@ -19,8 +25,9 @@ class ItemLoader {
     private final ItemEngine mItemEngine;
     private final Handler mHandler;
     private final Map<View, ItemState> mItemStates;
-    private final Map<Object, ItemRequest> mPreloadRequests;
-    private final ExecutorService mExecutorService;
+    private final Map<Object, ItemRequest> mItemRequests;
+    private final ThreadPoolExecutor mExecutorService;
+    private final PriorityBlockingQueue<Runnable> mQueue;
 
     class ItemState {
         public boolean shouldLoadItem;
@@ -31,42 +38,50 @@ class ItemLoader {
         mItemEngine = itemEngine;
         mHandler = handler;
         mItemStates = Collections.synchronizedMap(new WeakHashMap<View, ItemState>());
-        mPreloadRequests = Collections.synchronizedMap(new WeakHashMap<Object, ItemRequest>());
-        mExecutorService = Executors.newFixedThreadPool(threadPoolSize);
+        mItemRequests = Collections.synchronizedMap(new WeakHashMap<Object, ItemRequest>());
+        mQueue = new PriorityBlockingQueue<Runnable>();
+        mExecutorService = new ItemsThreadPoolExecutor(threadPoolSize, threadPoolSize, 60,
+                TimeUnit.SECONDS, mQueue);
     }
 
     void displayItem(View itemView) {
         final Object itemParams = getItemState(itemView).itemParams;
+        if (ENABLE_LOGGING) {
+            Log.d(LOGTAG, "displayItem called: " + itemParams);
+        }
+
         if (itemParams == null) {
             if (ENABLE_LOGGING) {
-                Log.d(LOGTAG, "No item params, bailing");
+                Log.d(LOGTAG, "No item params, bailing: " + itemParams);
             }
 
             return;
         }
 
-        ItemRequest request = mPreloadRequests.get(itemParams);
+        ItemRequest request = mItemRequests.get(itemParams);
         if (request == null) {
             if (ENABLE_LOGGING) {
-                Log.d(LOGTAG, "No preload request, creating new");
+                Log.d(LOGTAG, "(Display) No pending item request, creating new: " + itemParams);
             }
 
             request = new ItemRequest(itemView, itemParams);
+            mItemRequests.put(itemParams, request);
         } else {
             if (ENABLE_LOGGING) {
-                Log.d(LOGTAG, "There's a pending preload request, reusing");
+                Log.d(LOGTAG, "(Display) There's a pending item request, reusing: " + itemParams);
             }
 
+            request.timestamp = SystemClock.uptimeMillis();
             request.itemView = new SoftReference<View>(itemView);
         }
-
-        mPreloadRequests.remove(itemParams);
 
         Object item = mItemEngine.loadItemFromMemory(itemParams);
         if (item != null) {
             if (ENABLE_LOGGING) {
                 Log.d(LOGTAG, "Item is preloaded, quickly displaying");
             }
+
+            cancelItemRequest(itemParams);
 
             request.item = new SoftReference<Object>(item);
             mHandler.post(new DisplayItemRunnable(request, true));
@@ -77,42 +92,62 @@ class ItemLoader {
         request.loadItemTask = mExecutorService.submit(new LoadItemRunnable(request));
     }
 
-    void preloadItem(Object itemParams) {
-        if (mPreloadRequests.containsKey(itemParams)) {
-            if (ENABLE_LOGGING) {
-                Log.d(LOGTAG, "Pending preload request, bailing");
-            }
-
-            return;
+    long preloadItem(Object itemParams) {
+        if (ENABLE_LOGGING) {
+            Log.d(LOGTAG, "preloadItem called: " + itemParams);
         }
+
+        long timestamp = SystemClock.uptimeMillis();
 
         if (mItemEngine.isItemInMemory(itemParams)) {
             if (ENABLE_LOGGING) {
-                Log.d(LOGTAG, "Image is in memory, bailing");
+                Log.d(LOGTAG, "Item is in memory, bailing: " + itemParams);
             }
 
-            return;
+            cancelItemRequest(itemParams);
+            return timestamp;
         }
 
-        ItemRequest request = new ItemRequest(itemParams);
-        mPreloadRequests.put(itemParams, request);
+        ItemRequest request = mItemRequests.get(itemParams);
+        if (request == null) {
+            if (ENABLE_LOGGING) {
+                Log.d(LOGTAG, "(Preload) No pending item request, creating new: " + itemParams);
+            }
 
-        request.loadItemTask = mExecutorService.submit(new LoadItemRunnable(request));
+            request = new ItemRequest(itemParams, timestamp);
+            mItemRequests.put(itemParams, request);
+
+            request.loadItemTask = mExecutorService.submit(new LoadItemRunnable(request));
+        } else {
+            if (ENABLE_LOGGING) {
+                Log.d(LOGTAG, "(Preload) There's a pending item request, reusing: " + itemParams);
+            }
+
+            request.timestamp = timestamp;
+            request.itemView = null;
+        }
+
+        return timestamp;
     }
 
-    void clearPreloadRequests() {
-        for (Map.Entry<Object, ItemRequest> entry : mPreloadRequests.entrySet()) {
-            ItemRequest request = entry.getValue();
-            if (ENABLE_LOGGING) {
-                Log.d(LOGTAG, "Canceling preload request for pattern: " + request.itemParams);
-            }
+    void cancelObsoleteRequests(long timestamp) {
+        for (Iterator<ItemRequest> i = mItemRequests.values().iterator(); i.hasNext();) {
+            ItemRequest request = i.next();
 
-            if (request.loadItemTask != null) {
-                request.loadItemTask.cancel(true);
+            if (request.timestamp < timestamp) {
+                if (ENABLE_LOGGING) {
+                    Log.d(LOGTAG, "Cancelling obsolete request: " + request.itemParams);
+                }
+
+                if (request.loadItemTask != null) {
+                    request.loadItemTask.cancel(true);
+                }
+
+                i.remove();
             }
         }
 
-        mPreloadRequests.clear();
+        mExecutorService.purge();
     }
 
     ItemState getItemState(View itemView) {
@@ -127,6 +162,18 @@ class ItemLoader {
         }
 
         return itemState;
+    }
+
+    private void cancelItemRequest(Object itemParams) {
+        ItemRequest request = mItemRequests.get(itemParams);
+        if (request == null) {
+            return;
+        }
+
+        mItemRequests.remove(itemParams);
+        if (request.loadItemTask != null) {
+            request.loadItemTask.cancel(true);
+        }
     }
 
     private boolean itemViewReused(ItemRequest request) {
@@ -151,18 +198,65 @@ class ItemLoader {
         public SoftReference<View> itemView;
         public Object itemParams;
         public SoftReference<Object> item;
+        public Long timestamp;
         public Future<?> loadItemTask;
 
-        public ItemRequest(Object itemParams) {
+        public ItemRequest(Object itemParams, long timestamp) {
             this.itemView = null;
             this.itemParams = itemParams;
             this.item = new SoftReference<Object>(null);
+            this.timestamp = timestamp;
+            this.loadItemTask = null;
         }
 
         public ItemRequest(View itemView, Object itemParams) {
             this.itemView = new SoftReference<View>(itemView);
             this.itemParams = itemParams;
             this.item = new SoftReference<Object>(null);
+            this.timestamp = SystemClock.uptimeMillis();
+            this.loadItemTask = null;
+        }
+    }
+
+    private class ItemsThreadPoolExecutor extends ThreadPoolExecutor {
+        public ItemsThreadPoolExecutor(int corePoolSize, int maximumPoolSize,
+                long keepAliveTime, TimeUnit unit,
+                BlockingQueue<Runnable> workQueue) {
+            super(corePoolSize, maximumPoolSize, keepAliveTime, unit, workQueue);
+        }
+
+        @Override
+        public Future<?> submit(Runnable task) {
+            if (task == null) {
+                throw new NullPointerException();
+            }
+
+            LoadItemRunnable r = (LoadItemRunnable) task;
+            LoadItemFutureTask ftask = new LoadItemFutureTask(r.mRequest);
+            execute(ftask);
+
+            return ftask;
+        }
+    }
+
+    private class LoadItemFutureTask extends FutureTask<LoadItemRunnable>
+            implements Comparable<LoadItemFutureTask> {
+        private final ItemRequest mRequest;
+
+        public LoadItemFutureTask(ItemRequest request) {
+            super(new LoadItemRunnable(request), null);
+            mRequest = request;
+        }
+
+        @Override
+        public int compareTo(LoadItemFutureTask another) {
+            if (mRequest.itemView != null && another.mRequest.itemView == null) {
+                return -1;
+            } else if (mRequest.itemView == null && another.mRequest.itemView != null) {
+                return 1;
+            } else {
+                return mRequest.timestamp.compareTo(another.mRequest.timestamp);
+            }
         }
     }
 
@@ -175,7 +269,12 @@ class ItemLoader {
 
         @Override
         public void run() {
+            if (ENABLE_LOGGING) {
+                Log.d(LOGTAG, "Running: " + mRequest.itemParams);
+            }
+
             Process.setThreadPriority(Process.THREAD_PRIORITY_BACKGROUND);
+            mItemRequests.remove(mRequest.itemParams);
 
             if (itemViewReused(mRequest)) {
                 return;

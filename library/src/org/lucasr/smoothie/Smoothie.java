@@ -4,6 +4,7 @@ import org.lucasr.smoothie.ItemLoader.ItemState;
 
 import android.os.Handler;
 import android.os.Message;
+import android.os.SystemClock;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.View.OnTouchListener;
@@ -24,6 +25,7 @@ public final class Smoothie {
 
     private final boolean mPreloadItemsEnabled;
     private final int mPreloadItemsCount;
+    private long mLastPreloadTimestamp;
 
     private int mScrollState;
     private boolean mPendingItemsUpdate;
@@ -39,6 +41,7 @@ public final class Smoothie {
 
         mPreloadItemsEnabled = preloadItemsEnabled;
         mPreloadItemsCount = preloadItemsCount;
+        mLastPreloadTimestamp = SystemClock.uptimeMillis();
 
         mScrollState = OnScrollListener.SCROLL_STATE_IDLE;
         mAbsListView.setOnScrollListener(new ScrollManager());
@@ -62,9 +65,8 @@ public final class Smoothie {
         }
 
         if (mPreloadItemsEnabled) {
-            mItemLoader.clearPreloadRequests();
-
             int lastFetchedPosition = mAbsListView.getFirstVisiblePosition() + count - 1;
+
             if (lastFetchedPosition > 0) {
                 Adapter adapter = mAbsListView.getAdapter();
                 final int adapterCount = adapter.getCount();
@@ -79,6 +81,9 @@ public final class Smoothie {
                 }
             }
         }
+
+        mItemLoader.cancelObsoleteRequests(mLastPreloadTimestamp);
+        mLastPreloadTimestamp = SystemClock.uptimeMillis();
 
         mAbsListView.invalidate();
     }
