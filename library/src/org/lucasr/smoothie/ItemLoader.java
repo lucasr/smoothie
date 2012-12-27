@@ -175,6 +175,8 @@ class ItemLoader {
 
         @Override
         public void run() {
+            Process.setThreadPriority(Process.THREAD_PRIORITY_BACKGROUND);
+
             if (itemViewReused(mRequest)) {
                 return;
             }
