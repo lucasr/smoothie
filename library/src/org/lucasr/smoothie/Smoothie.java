@@ -22,17 +22,25 @@ public final class Smoothie {
     private final ItemEngine mItemEngine;
     private final Handler mHandler;
 
+    private final boolean mPreloadItemsEnabled;
+    private final int mPreloadItemsCount;
+
     private int mScrollState;
     private boolean mPendingItemsUpdate;
     private boolean mFingerUp;
 
-    public Smoothie(AbsListView list, ItemEngine itemEngine) {
+    private Smoothie(AbsListView list, ItemEngine itemEngine, boolean preloadItemsEnabled,
+            int preloadItemsCount, int threadPoolSize) {
         mList = list;
 
         mScrollState = OnScrollListener.SCROLL_STATE_IDLE;
         mHandler = new ItemsListHandler();
-        mItemLoader = new ItemLoader(itemEngine, mHandler);
+
+        mItemLoader = new ItemLoader(itemEngine, mHandler, threadPoolSize);
         mItemEngine = itemEngine;
+
+        mPreloadItemsEnabled = preloadItemsEnabled;
+        mPreloadItemsCount = preloadItemsCount;
 
         mList.setOnScrollListener(new ScrollManager());
         mList.setOnTouchListener(new FingerTracker());
@@ -54,17 +62,21 @@ public final class Smoothie {
             }
         }
 
-        mItemLoader.clearPreloadRequests();
+        if (mPreloadItemsEnabled) {
+            mItemLoader.clearPreloadRequests();
 
-        int lastFetchedPosition = mList.getFirstVisiblePosition() + count - 1;
-        if (lastFetchedPosition > 0) {
-            Adapter adapter = mList.getAdapter();
-            final int adapterCount = adapter.getCount();
+            int lastFetchedPosition = mList.getFirstVisiblePosition() + count - 1;
+            if (lastFetchedPosition > 0) {
+                Adapter adapter = mList.getAdapter();
+                final int adapterCount = adapter.getCount();
 
-            for (int i = lastFetchedPosition; i < lastFetchedPosition + 10 && i < adapterCount; i++) {
-                Object itemParams = mItemEngine.getPreloadItemParams(adapter, i);
-                if (itemParams != null) {
-                    mItemLoader.preloadItem(itemParams);
+                for (int i = lastFetchedPosition;
+                     i < lastFetchedPosition + mPreloadItemsCount && i < adapterCount;
+                     i++) {
+                    Object itemParams = mItemEngine.getPreloadItemParams(adapter, i);
+                    if (itemParams != null) {
+                        mItemLoader.preloadItem(itemParams);
+                    }
                 }
             }
         }
@@ -173,6 +185,48 @@ public final class Smoothie {
                     smoothie.updateItems();
                     break;
             }
+        }
+    }
+
+    public final static class Builder {
+        private static final boolean DEFAULT_PRELOAD_ITEMS_ENABLED = false;
+        private static final int DEFAULT_PRELOAD_ITEMS_COUNT = 4;
+        private static final int DEFAULT_THREAD_POOL_SIZE = 2;
+
+        private final AbsListView mAbsListView;
+        private final ItemEngine mItemEngine;
+
+        private boolean mPreloadItemsEnabled;
+        private int mPreloadItemsCount;
+        private int mThreadPoolSize;
+
+        public Builder(AbsListView absListView, ItemEngine itemEngine) {
+            mAbsListView = absListView;
+            mItemEngine = itemEngine;
+
+            mPreloadItemsEnabled = DEFAULT_PRELOAD_ITEMS_ENABLED;
+            mPreloadItemsCount = DEFAULT_PRELOAD_ITEMS_COUNT;
+            mThreadPoolSize = DEFAULT_THREAD_POOL_SIZE;
+        }
+
+        public Builder setPreloadItemsEnabled(boolean preloadItemsEnabled) {
+            mPreloadItemsEnabled = preloadItemsEnabled;
+            return this;
+        }
+
+        public Builder setPreloadItemsCount(int preloadItemsCount) {
+            mPreloadItemsCount = preloadItemsCount;
+            return this;
+        }
+
+        public Builder setThreadPoolSize(int threadPoolSize) {
+            mThreadPoolSize = threadPoolSize;
+            return this;
+        }
+
+        public Smoothie build() {
+            return new Smoothie(mAbsListView, mItemEngine, mPreloadItemsEnabled,
+                    mPreloadItemsCount, mThreadPoolSize);
         }
     }
 }

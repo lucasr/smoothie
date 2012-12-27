@@ -25,7 +25,12 @@ public class MainActivity extends Activity {
         mListView = (ListView) findViewById(R.id.list);
 
         BitmapLruCache cache = App.getInstance(this).getBitmapCache();
-        mSmoothie = new Smoothie(mListView, new PatternsListEngine(cache));
+        PatternsListEngine engine = new PatternsListEngine(cache);
+
+        Smoothie.Builder builder = new Smoothie.Builder(mListView, engine);
+        builder.setPreloadItemsEnabled(true).setPreloadItemsCount(5);
+        builder.setThreadPoolSize(4);
+        mSmoothie = builder.build();
 
         new LoadPatternsListTask().execute();
     }
@@ -36,7 +41,7 @@ public class MainActivity extends Activity {
 
         @Override
         protected ArrayList<String> doInBackground(Void... params) {
-            ArrayList<String> urls = new ArrayList<String>();  
+            ArrayList<String> urls = new ArrayList<String>();
 
             JSONArray patternsArray = HttpHelper.loadJSON(URL);
             final int nPatterns = patternsArray.length();

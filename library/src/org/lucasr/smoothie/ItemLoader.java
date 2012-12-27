@@ -27,12 +27,12 @@ class ItemLoader {
         public Object itemParams;
     }
 
-    ItemLoader(ItemEngine itemEngine, Handler handler) {
+    ItemLoader(ItemEngine itemEngine, Handler handler, int threadPoolSize) {
         mItemEngine = itemEngine;
         mHandler = handler;
         mItemStates = Collections.synchronizedMap(new WeakHashMap<View, ItemState>());
         mPreloadRequests = Collections.synchronizedMap(new WeakHashMap<Object, ItemRequest>());
-        mExecutorService = Executors.newFixedThreadPool(2);
+        mExecutorService = Executors.newFixedThreadPool(threadPoolSize);
     }
 
     void displayItem(View itemView) {
