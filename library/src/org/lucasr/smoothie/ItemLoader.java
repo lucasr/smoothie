@@ -27,7 +27,6 @@ class ItemLoader {
     private final Map<View, ItemState> mItemStates;
     private final Map<Object, ItemRequest> mItemRequests;
     private final ThreadPoolExecutor mExecutorService;
-    private final PriorityBlockingQueue<Runnable> mQueue;
 
     class ItemState {
         public boolean shouldLoadItem;
@@ -39,9 +38,8 @@ class ItemLoader {
         mHandler = handler;
         mItemStates = Collections.synchronizedMap(new WeakHashMap<View, ItemState>());
         mItemRequests = Collections.synchronizedMap(new WeakHashMap<Object, ItemRequest>());
-        mQueue = new PriorityBlockingQueue<Runnable>();
         mExecutorService = new ItemsThreadPoolExecutor(threadPoolSize, threadPoolSize, 60,
-                TimeUnit.SECONDS, mQueue);
+                TimeUnit.SECONDS, new PriorityBlockingQueue<Runnable>());
     }
 
     void displayItem(View itemView) {
