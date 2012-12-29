@@ -28,7 +28,7 @@ class ItemLoader {
     private final Map<Object, ItemRequest> mItemRequests;
     private final ThreadPoolExecutor mExecutorService;
 
-    class ItemState {
+    static final class ItemState {
         public boolean shouldLoadItem;
         public Object itemParams;
     }
@@ -82,12 +82,12 @@ class ItemLoader {
             cancelItemRequest(itemParams);
 
             request.item = new SoftReference<Object>(item);
-            mHandler.post(new DisplayItemRunnable(request, true));
+            mHandler.post(new DisplayItemRunnable(this, request, true));
 
             return;
         }
 
-        request.loadItemTask = mExecutorService.submit(new LoadItemRunnable(request));
+        request.loadItemTask = mExecutorService.submit(new LoadItemRunnable(this, request));
     }
 
     void preloadItem(Object itemParams) {
@@ -113,7 +113,7 @@ class ItemLoader {
             request = new ItemRequest(itemParams);
             mItemRequests.put(itemParams, request);
 
-            request.loadItemTask = mExecutorService.submit(new LoadItemRunnable(request));
+            request.loadItemTask = mExecutorService.submit(new LoadItemRunnable(this, request));
         } else {
             if (ENABLE_LOGGING) {
                 Log.d(LOGTAG, "(Preload) There's a pending item request, reusing: " + itemParams);
@@ -188,7 +188,7 @@ class ItemLoader {
         return false;
     }
 
-    private class ItemRequest {
+    private static final class ItemRequest {
         public SoftReference<View> itemView;
         public Object itemParams;
         public SoftReference<Object> item;
@@ -212,10 +212,9 @@ class ItemLoader {
         }
     }
 
-    private class ItemsThreadPoolExecutor extends ThreadPoolExecutor {
+    private static final class ItemsThreadPoolExecutor extends ThreadPoolExecutor {
         public ItemsThreadPoolExecutor(int corePoolSize, int maximumPoolSize,
-                long keepAliveTime, TimeUnit unit,
-                BlockingQueue<Runnable> workQueue) {
+                long keepAliveTime, TimeUnit unit, BlockingQueue<Runnable> workQueue) {
             super(corePoolSize, maximumPoolSize, keepAliveTime, unit, workQueue);
         }
 
@@ -225,40 +224,48 @@ class ItemLoader {
                 throw new NullPointerException();
             }
 
-            LoadItemRunnable r = (LoadItemRunnable) task;
-            LoadItemFutureTask ftask = new LoadItemFutureTask(r.mRequest);
+            LoadItemFutureTask ftask = new LoadItemFutureTask((LoadItemRunnable) task);
             execute(ftask);
 
             return ftask;
         }
     }
 
-    private class LoadItemFutureTask extends FutureTask<LoadItemRunnable>
+    private static final class LoadItemFutureTask extends FutureTask<LoadItemRunnable>
             implements Comparable<LoadItemFutureTask> {
-        private final ItemRequest mRequest;
+        private final LoadItemRunnable mRunnable;
 
-        public LoadItemFutureTask(ItemRequest request) {
-            super(new LoadItemRunnable(request), null);
-            mRequest = request;
+        public LoadItemFutureTask(LoadItemRunnable runnable) {
+            super(runnable, null);
+            mRunnable = runnable;
         }
 
         @Override
         public int compareTo(LoadItemFutureTask another) {
-            if (mRequest.itemView != null && another.mRequest.itemView == null) {
+            ItemRequest r1 = mRunnable.getItemRequest();
+            ItemRequest r2 = another.mRunnable.getItemRequest();
+
+            if (r1.itemView != null && r2.itemView == null) {
                 return -1;
-            } else if (mRequest.itemView == null && another.mRequest.itemView != null) {
+            } else if (r1.itemView == null && r2.itemView != null) {
                 return 1;
             } else {
-                return mRequest.timestamp.compareTo(another.mRequest.timestamp);
+                return r1.timestamp.compareTo(r2.timestamp);
             }
         }
     }
 
-    private class LoadItemRunnable implements Runnable {
+    private static final class LoadItemRunnable implements Runnable {
+        private final ItemLoader mItemLoader;
         private final ItemRequest mRequest;
 
-        public LoadItemRunnable(ItemRequest request) {
+        public LoadItemRunnable(ItemLoader itemLoader, ItemRequest request) {
+            mItemLoader = itemLoader;
             mRequest = request;
+        }
+
+        public ItemRequest getItemRequest() {
+            return mRequest;
         }
 
         @Override
@@ -268,15 +275,16 @@ class ItemLoader {
             }
 
             Process.setThreadPriority(Process.THREAD_PRIORITY_BACKGROUND);
-            mItemRequests.remove(mRequest.itemParams);
+            mItemLoader.mItemRequests.remove(mRequest.itemParams);
 
-            if (itemViewReused(mRequest)) {
+            if (mItemLoader.itemViewReused(mRequest)) {
                 return;
             }
 
-            mRequest.item = new SoftReference<Object>(mItemEngine.loadItem(mRequest.itemParams));
+            Object item = mItemLoader.mItemEngine.loadItem(mRequest.itemParams);
+            mRequest.item = new SoftReference<Object>(item);
 
-            if (itemViewReused(mRequest)) {
+            if (mItemLoader.itemViewReused(mRequest)) {
                 return;
             }
 
@@ -285,7 +293,7 @@ class ItemLoader {
                     Log.d(LOGTAG, "Done loading image: " + mRequest.itemParams);
                 }
 
-                mHandler.post(new DisplayItemRunnable(mRequest, false));
+                mItemLoader.mHandler.post(new DisplayItemRunnable(mItemLoader, mRequest, false));
             } else {
                 if (ENABLE_LOGGING) {
                     Log.d(LOGTAG, "Done preloading: " + mRequest.itemParams);
@@ -294,11 +302,13 @@ class ItemLoader {
         }
     }
 
-    private class DisplayItemRunnable implements Runnable {
+    private static final class DisplayItemRunnable implements Runnable {
+        private final ItemLoader mItemLoader;
         private final ItemRequest mRequest;
         private final boolean mFromMemory;
 
-        public DisplayItemRunnable(ItemRequest request, boolean fromMemory) {
+        public DisplayItemRunnable(ItemLoader itemLoader, ItemRequest request, boolean fromMemory) {
+            mItemLoader = itemLoader;
             mRequest = request;
             mFromMemory = fromMemory;
         }
@@ -307,18 +317,19 @@ class ItemLoader {
         public void run() {
             View itemView = mRequest.itemView.get();
 
-            if (itemViewReused(mRequest)) {
+            if (mItemLoader.itemViewReused(mRequest)) {
                 if (itemView != null) {
-                    getItemState(itemView).itemParams = null;
+                    mItemLoader.getItemState(itemView).itemParams = null;
                 }
+
                 return;
             }
 
             Object item = mRequest.item.get();
             if (item != null) {
-                mItemEngine.displayItem(itemView, item, mFromMemory);
+                mItemLoader.mItemEngine.displayItem(itemView, item, mFromMemory);
                 if (itemView != null) {
-                    getItemState(itemView).itemParams = null;
+                    mItemLoader.getItemState(itemView).itemParams = null;
                 }
             }
         }
