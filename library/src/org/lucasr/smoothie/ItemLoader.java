@@ -90,12 +90,10 @@ class ItemLoader {
         request.loadItemTask = mExecutorService.submit(new LoadItemRunnable(request));
     }
 
-    long preloadItem(Object itemParams) {
+    void preloadItem(Object itemParams) {
         if (ENABLE_LOGGING) {
             Log.d(LOGTAG, "preloadItem called: " + itemParams);
         }
-
-        long timestamp = SystemClock.uptimeMillis();
 
         if (mItemEngine.isItemInMemory(itemParams)) {
             if (ENABLE_LOGGING) {
@@ -103,7 +101,7 @@ class ItemLoader {
             }
 
             cancelItemRequest(itemParams);
-            return timestamp;
+            return;
         }
 
         ItemRequest request = mItemRequests.get(itemParams);
@@ -112,7 +110,7 @@ class ItemLoader {
                 Log.d(LOGTAG, "(Preload) No pending item request, creating new: " + itemParams);
             }
 
-            request = new ItemRequest(itemParams, timestamp);
+            request = new ItemRequest(itemParams);
             mItemRequests.put(itemParams, request);
 
             request.loadItemTask = mExecutorService.submit(new LoadItemRunnable(request));
@@ -121,11 +119,9 @@ class ItemLoader {
                 Log.d(LOGTAG, "(Preload) There's a pending item request, reusing: " + itemParams);
             }
 
-            request.timestamp = timestamp;
+            request.timestamp = SystemClock.uptimeMillis();
             request.itemView = null;
         }
-
-        return timestamp;
     }
 
     void cancelObsoleteRequests(long timestamp) {
@@ -199,11 +195,11 @@ class ItemLoader {
         public Long timestamp;
         public Future<?> loadItemTask;
 
-        public ItemRequest(Object itemParams, long timestamp) {
+        public ItemRequest(Object itemParams) {
             this.itemView = null;
             this.itemParams = itemParams;
             this.item = new SoftReference<Object>(null);
-            this.timestamp = timestamp;
+            this.timestamp = SystemClock.uptimeMillis();
             this.loadItemTask = null;
         }
 
