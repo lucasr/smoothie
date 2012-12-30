@@ -65,7 +65,7 @@ public final class ItemManager {
         }
 
         if (mPreloadItemsEnabled) {
-            int lastFetchedPosition = mAbsListView.getFirstVisiblePosition() + count - 1;
+            int lastFetchedPosition = mAbsListView.getFirstVisiblePosition() + count;
 
             if (lastFetchedPosition > 0) {
                 Adapter adapter = mAbsListView.getAdapter();
