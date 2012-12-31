@@ -24,9 +24,9 @@ public class MainActivity extends Activity {
         mListView = (AsyncListView) findViewById(R.id.list);
 
         BitmapLruCache cache = App.getInstance(this).getBitmapCache();
-        PatternsListEngine engine = new PatternsListEngine(cache);
+        PatternsListLoader loader = new PatternsListLoader(cache);
 
-        ItemManager.Builder builder = new ItemManager.Builder(engine);
+        ItemManager.Builder builder = new ItemManager.Builder(loader);
         builder.setPreloadItemsEnabled(true).setPreloadItemsCount(5);
         builder.setThreadPoolSize(4);
 

@@ -18,15 +18,18 @@ class ItemManaged {
         mItemManager = null;
     }
 
+    boolean hasItemManager() {
+        return (mItemManager != null);
+    }
+
     void setItemManager(ItemManager itemManager) {
         if (mItemManager != null) {
             mItemManager.setItemManaged(null);
+            mItemManager = null;
         }
 
-        mItemManager = itemManager;
-
-        if (mItemManager != null) {
-            mItemManager.setItemManaged(this);
+        if (itemManager != null) {
+            itemManager.setItemManaged(this);
         } else {
             mAbsListView.setOnScrollListener(mListeners.getOnScrollListener());
             mAbsListView.setOnTouchListener(mListeners.getOnTouchListener());
@@ -38,6 +41,8 @@ class ItemManaged {
                 mAbsListView.setAdapter(asyncAdapter.getWrappedAdapter());
             }
         }
+
+        mItemManager = itemManager;
     }
 
     AbsListView getAbsListView() {

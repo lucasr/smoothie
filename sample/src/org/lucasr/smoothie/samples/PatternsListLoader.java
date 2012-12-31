@@ -1,6 +1,6 @@
 package org.lucasr.smoothie.samples;
 
-import org.lucasr.smoothie.ItemEngine;
+import org.lucasr.smoothie.ItemLoader;
 import org.lucasr.smoothie.samples.PatternsListAdapter.ViewHolder;
 
 import uk.co.senab.bitmapcache.BitmapLruCache;
@@ -12,21 +12,21 @@ import android.graphics.drawable.TransitionDrawable;
 import android.view.View;
 import android.widget.Adapter;
 
-public class PatternsListEngine extends ItemEngine {
+public class PatternsListLoader extends ItemLoader<String, CacheableBitmapWrapper> {
     final BitmapLruCache mCache;
 
-    public PatternsListEngine(BitmapLruCache cache) {
+    public PatternsListLoader(BitmapLruCache cache) {
         mCache = cache;
     }
 
     @Override
-    public boolean isItemInMemory(Object itemParams) {
-        return (mCache.getFromMemoryCache((String) itemParams) != null);
+    public boolean isItemInMemory(String url) {
+        return (mCache.getFromMemoryCache(url) != null);
     }
 
     @Override
-    public Object loadItemFromMemory(Object itemParams) {
-        return mCache.getFromMemoryCache((String) itemParams);
+    public CacheableBitmapWrapper loadItemFromMemory(String url) {
+        return mCache.getFromMemoryCache(url);
     }
 
     @Override
@@ -37,14 +37,12 @@ public class PatternsListEngine extends ItemEngine {
     }
 
     @Override
-    public Object getItemParams(Adapter adapter, int position) {
-        return adapter.getItem(position);
+    public String getItemParams(Adapter adapter, int position) {
+        return (String) adapter.getItem(position);
     }
 
     @Override
-    public Object loadItem(Object itemParams) {
-        String url = (String) itemParams;
-
+    public CacheableBitmapWrapper loadItem(String url) {
         CacheableBitmapWrapper wrapper = mCache.get(url);
         if (wrapper == null) {
             wrapper = mCache.put(url, HttpHelper.loadImage(url));
@@ -54,17 +52,15 @@ public class PatternsListEngine extends ItemEngine {
     }
 
     @Override
-    public void displayItem(View itemView, Object item, boolean fromMemory) {
+    public void displayItem(View itemView, CacheableBitmapWrapper result, boolean fromMemory) {
         ViewHolder holder = (ViewHolder) itemView.getTag();
 
-        if (item == null) {
+        if (result == null) {
             holder.title.setText("Failed");
             return;
         }
 
-        CacheableBitmapWrapper wrapper = (CacheableBitmapWrapper) item;
-
-        BitmapDrawable patternDrawable = new BitmapDrawable(itemView.getResources(), wrapper.getBitmap());
+        BitmapDrawable patternDrawable = new BitmapDrawable(itemView.getResources(), result.getBitmap());
         patternDrawable.setTileModeXY(TileMode.REPEAT, TileMode.REPEAT);
 
         if (fromMemory) {

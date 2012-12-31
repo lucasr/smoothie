@@ -17,37 +17,41 @@ import android.os.Process;
 import android.os.SystemClock;
 import android.util.Log;
 import android.view.View;
+import android.widget.Adapter;
 
-class ItemLoader {
+public abstract class ItemLoader<Params, Result> {
     private static final String LOGTAG = "SmoothieItemLoader";
-    private static final boolean ENABLE_LOGGING = false;
+    private static final boolean ENABLE_LOGGING = true;
 
-    private final ItemEngine mItemEngine;
-    private final Handler mHandler;
-    private final Map<View, ItemState> mItemStates;
-    private final Map<Object, ItemRequest> mItemRequests;
-    private final ThreadPoolExecutor mExecutorService;
+    private Handler mHandler;
+    private Map<View, ItemState<Params>> mItemStates;
+    private Map<Params, ItemRequest<Params, Result>> mItemRequests;
+    private ThreadPoolExecutor mExecutorService;
 
-    static final class ItemState {
+    static final class ItemState<Params> {
         public boolean shouldLoadItem;
-        public Object itemParams;
+        public Params itemParams;
     }
 
-    ItemLoader(ItemEngine itemEngine, Handler handler, int threadPoolSize) {
-        mItemEngine = itemEngine;
+    void init(Handler handler, int threadPoolSize) {
         mHandler = handler;
-        mItemStates = Collections.synchronizedMap(new WeakHashMap<View, ItemState>());
-        mItemRequests = Collections.synchronizedMap(new WeakHashMap<Object, ItemRequest>());
-        mExecutorService = new ItemsThreadPoolExecutor(threadPoolSize, threadPoolSize, 60,
+        mItemStates = Collections.synchronizedMap(new WeakHashMap<View, ItemState<Params>>());
+        mItemRequests = Collections.synchronizedMap(new WeakHashMap<Params, ItemRequest<Params, Result>>());
+        mExecutorService = new ItemsThreadPoolExecutor<Params, Result>(threadPoolSize, threadPoolSize, 60,
                 TimeUnit.SECONDS, new PriorityBlockingQueue<Runnable>());
     }
 
-    void displayItem(View itemView) {
-        final Object itemParams = getItemState(itemView).itemParams;
-        if (ENABLE_LOGGING) {
-            Log.d(LOGTAG, "displayItem called: " + itemParams);
+    void performDisplayItem(View itemView) {
+        ItemState<Params> itemState = getItemState(itemView);
+        if (!itemState.shouldLoadItem) {
+            if (ENABLE_LOGGING) {
+                Log.d(LOGTAG, "Item should not load, bailing: " + itemState.itemParams);
+            }
+
+            return;
         }
 
+        Params itemParams = itemState.itemParams;
         if (itemParams == null) {
             if (ENABLE_LOGGING) {
                 Log.d(LOGTAG, "No item params, bailing: " + itemParams);
@@ -56,13 +60,13 @@ class ItemLoader {
             return;
         }
 
-        ItemRequest request = mItemRequests.get(itemParams);
+        ItemRequest<Params, Result> request = mItemRequests.get(itemParams);
         if (request == null) {
             if (ENABLE_LOGGING) {
                 Log.d(LOGTAG, "(Display) No pending item request, creating new: " + itemParams);
             }
 
-            request = new ItemRequest(itemView, itemParams);
+            request = new ItemRequest<Params, Result>(itemView, itemParams);
             mItemRequests.put(itemParams, request);
         } else {
             if (ENABLE_LOGGING) {
@@ -73,29 +77,53 @@ class ItemLoader {
             request.itemView = new SoftReference<View>(itemView);
         }
 
-        Object item = mItemEngine.loadItemFromMemory(itemParams);
-        if (item != null) {
+        itemState.shouldLoadItem = false;
+
+        Result result = loadItemFromMemory(itemParams);
+        if (result != null) {
             if (ENABLE_LOGGING) {
                 Log.d(LOGTAG, "Item is preloaded, quickly displaying");
             }
 
             cancelItemRequest(itemParams);
 
-            request.item = new SoftReference<Object>(item);
-            mHandler.post(new DisplayItemRunnable(this, request, true));
+            request.result = new SoftReference<Result>(result);
+            mHandler.post(new DisplayItemRunnable<Params, Result>(this, request, true));
 
             return;
         }
 
-        request.loadItemTask = mExecutorService.submit(new LoadItemRunnable(this, request));
+        request.loadItemTask = mExecutorService.submit(new LoadItemRunnable<Params, Result>(this, request));
     }
 
-    void preloadItem(Object itemParams) {
-        if (ENABLE_LOGGING) {
-            Log.d(LOGTAG, "preloadItem called: " + itemParams);
+    void performLoadItem(View itemView, Adapter adapter, int position, boolean shouldDisplayItem) {
+        Params itemParams = getItemParams(adapter, position);
+        if (itemParams == null) {
+            return;
         }
 
-        if (mItemEngine.isItemInMemory(itemParams)) {
+        ItemState<Params> itemState = getItemState(itemView);
+        itemState.itemParams = itemParams;
+
+        boolean itemInMemory = isItemInMemory(itemParams);
+        if (!itemInMemory) {
+            resetItem(itemView);
+        }
+
+        itemState.shouldLoadItem = true;
+
+        if (shouldDisplayItem || itemInMemory) {
+            performDisplayItem(itemView);
+        }
+    }
+
+    void performPreloadItem(Adapter adapter, int position) {
+        Params itemParams = getItemParams(adapter, position);
+        if (itemParams == null) {
+            return;
+        }
+
+        if (isItemInMemory(itemParams)) {
             if (ENABLE_LOGGING) {
                 Log.d(LOGTAG, "Item is in memory, bailing: " + itemParams);
             }
@@ -104,16 +132,16 @@ class ItemLoader {
             return;
         }
 
-        ItemRequest request = mItemRequests.get(itemParams);
+        ItemRequest<Params, Result> request = mItemRequests.get(itemParams);
         if (request == null) {
             if (ENABLE_LOGGING) {
                 Log.d(LOGTAG, "(Preload) No pending item request, creating new: " + itemParams);
             }
 
-            request = new ItemRequest(itemParams);
+            request = new ItemRequest<Params, Result>(itemParams);
             mItemRequests.put(itemParams, request);
 
-            request.loadItemTask = mExecutorService.submit(new LoadItemRunnable(this, request));
+            request.loadItemTask = mExecutorService.submit(new LoadItemRunnable<Params, Result>(this, request));
         } else {
             if (ENABLE_LOGGING) {
                 Log.d(LOGTAG, "(Preload) There's a pending item request, reusing: " + itemParams);
@@ -125,8 +153,8 @@ class ItemLoader {
     }
 
     void cancelObsoleteRequests(long timestamp) {
-        for (Iterator<ItemRequest> i = mItemRequests.values().iterator(); i.hasNext();) {
-            ItemRequest request = i.next();
+        for (Iterator<ItemRequest<Params, Result>> i = mItemRequests.values().iterator(); i.hasNext();) {
+            ItemRequest<Params, Result> request = i.next();
 
             if (request.timestamp < timestamp) {
                 if (ENABLE_LOGGING) {
@@ -144,11 +172,11 @@ class ItemLoader {
         mExecutorService.purge();
     }
 
-    ItemState getItemState(View itemView) {
-        ItemState itemState = mItemStates.get(itemView);
+    private ItemState<Params> getItemState(View itemView) {
+        ItemState<Params> itemState = mItemStates.get(itemView);
 
         if (itemState == null) {
-            itemState = new ItemState();
+            itemState = new ItemState<Params>();
             itemState.itemParams = null;
             itemState.shouldLoadItem = false;
 
@@ -158,8 +186,8 @@ class ItemLoader {
         return itemState;
     }
 
-    private void cancelItemRequest(Object itemParams) {
-        ItemRequest request = mItemRequests.get(itemParams);
+    private void cancelItemRequest(Params itemParams) {
+        ItemRequest<Params, Result> request = mItemRequests.get(itemParams);
         if (request == null) {
             return;
         }
@@ -170,7 +198,7 @@ class ItemLoader {
         }
     }
 
-    private boolean itemViewReused(ItemRequest request) {
+    private boolean itemViewReused(ItemRequest<Params, Result> request) {
         if (request.itemView == null) {
             return false;
         }
@@ -180,7 +208,7 @@ class ItemLoader {
             return true;
         }
 
-        final Object itemParams = getItemState(itemView).itemParams;
+        final Params itemParams = getItemState(itemView).itemParams;
         if (itemParams == null || !request.itemParams.equals(itemParams)) {
             return true;
         }
@@ -188,31 +216,52 @@ class ItemLoader {
         return false;
     }
 
-    private static final class ItemRequest {
+    public void resetItem(View itemView) {
+    }
+
+    public boolean isItemInMemory(Params itemParams) {
+        return false;
+    }
+
+    public Result loadItemFromMemory(Params itemParams) {
+        return null;
+    }
+
+    public Result preloadItem(Params itemParams) {
+        return loadItem(itemParams);
+    }
+
+    public abstract Params getItemParams(Adapter adapter, int position);
+
+    public abstract Result loadItem(Params itemParams);
+
+    public abstract void displayItem(View itemView, Result result, boolean fromMemory);
+
+    private static final class ItemRequest<Params, Result> {
         public SoftReference<View> itemView;
-        public Object itemParams;
-        public SoftReference<Object> item;
+        public Params itemParams;
+        public SoftReference<Result> result;
         public Long timestamp;
         public Future<?> loadItemTask;
 
-        public ItemRequest(Object itemParams) {
+        public ItemRequest(Params itemParams) {
             this.itemView = null;
             this.itemParams = itemParams;
-            this.item = new SoftReference<Object>(null);
+            this.result = new SoftReference<Result>(null);
             this.timestamp = SystemClock.uptimeMillis();
             this.loadItemTask = null;
         }
 
-        public ItemRequest(View itemView, Object itemParams) {
+        public ItemRequest(View itemView, Params itemParams) {
             this.itemView = new SoftReference<View>(itemView);
             this.itemParams = itemParams;
-            this.item = new SoftReference<Object>(null);
+            this.result = new SoftReference<Result>(null);
             this.timestamp = SystemClock.uptimeMillis();
             this.loadItemTask = null;
         }
     }
 
-    private static final class ItemsThreadPoolExecutor extends ThreadPoolExecutor {
+    private static final class ItemsThreadPoolExecutor<Params, Result> extends ThreadPoolExecutor {
         public ItemsThreadPoolExecutor(int corePoolSize, int maximumPoolSize,
                 long keepAliveTime, TimeUnit unit, BlockingQueue<Runnable> workQueue) {
             super(corePoolSize, maximumPoolSize, keepAliveTime, unit, workQueue);
@@ -224,26 +273,29 @@ class ItemLoader {
                 throw new NullPointerException();
             }
 
-            LoadItemFutureTask ftask = new LoadItemFutureTask((LoadItemRunnable) task);
+            @SuppressWarnings("unchecked")
+            LoadItemFutureTask<Params, Result> ftask =
+                    new LoadItemFutureTask<Params, Result>((LoadItemRunnable<Params, Result>) task);
+
             execute(ftask);
 
             return ftask;
         }
     }
 
-    private static final class LoadItemFutureTask extends FutureTask<LoadItemRunnable>
-            implements Comparable<LoadItemFutureTask> {
-        private final LoadItemRunnable mRunnable;
+    private static final class LoadItemFutureTask<Params, Result> extends FutureTask<LoadItemRunnable<Params, Result>>
+            implements Comparable<LoadItemFutureTask<Params, Result>> {
+        private final LoadItemRunnable<Params, Result> mRunnable;
 
-        public LoadItemFutureTask(LoadItemRunnable runnable) {
+        public LoadItemFutureTask(LoadItemRunnable<Params, Result> runnable) {
             super(runnable, null);
             mRunnable = runnable;
         }
 
         @Override
-        public int compareTo(LoadItemFutureTask another) {
-            ItemRequest r1 = mRunnable.getItemRequest();
-            ItemRequest r2 = another.mRunnable.getItemRequest();
+        public int compareTo(LoadItemFutureTask<Params, Result> another) {
+            ItemRequest<Params, Result> r1 = mRunnable.getItemRequest();
+            ItemRequest<Params, Result> r2 = another.mRunnable.getItemRequest();
 
             if (r1.itemView != null && r2.itemView == null) {
                 return -1;
@@ -255,16 +307,16 @@ class ItemLoader {
         }
     }
 
-    private static final class LoadItemRunnable implements Runnable {
-        private final ItemLoader mItemLoader;
-        private final ItemRequest mRequest;
+    private static final class LoadItemRunnable<Params, Result> implements Runnable {
+        private final ItemLoader<Params, Result> mItemLoader;
+        private final ItemRequest<Params, Result> mRequest;
 
-        public LoadItemRunnable(ItemLoader itemLoader, ItemRequest request) {
+        public LoadItemRunnable(ItemLoader<Params, Result> itemLoader, ItemRequest<Params, Result> request) {
             mItemLoader = itemLoader;
             mRequest = request;
         }
 
-        public ItemRequest getItemRequest() {
+        public ItemRequest<Params, Result> getItemRequest() {
             return mRequest;
         }
 
@@ -281,20 +333,23 @@ class ItemLoader {
                 return;
             }
 
-            Object item = mItemLoader.mItemEngine.loadItem(mRequest.itemParams);
-            mRequest.item = new SoftReference<Object>(item);
-
-            if (mItemLoader.itemViewReused(mRequest)) {
-                return;
-            }
-
             if (mRequest.itemView != null) {
+                Result result = mItemLoader.loadItem(mRequest.itemParams);
+                mRequest.result = new SoftReference<Result>(result);
+
                 if (ENABLE_LOGGING) {
                     Log.d(LOGTAG, "Done loading image: " + mRequest.itemParams);
                 }
 
-                mItemLoader.mHandler.post(new DisplayItemRunnable(mItemLoader, mRequest, false));
+                if (mItemLoader.itemViewReused(mRequest)) {
+                    return;
+                }
+
+                mItemLoader.mHandler.post(new DisplayItemRunnable<Params, Result>(mItemLoader, mRequest, false));
             } else {
+                Result result = mItemLoader.preloadItem(mRequest.itemParams);
+                mRequest.result = new SoftReference<Result>(result);
+
                 if (ENABLE_LOGGING) {
                     Log.d(LOGTAG, "Done preloading: " + mRequest.itemParams);
                 }
@@ -302,12 +357,13 @@ class ItemLoader {
         }
     }
 
-    private static final class DisplayItemRunnable implements Runnable {
-        private final ItemLoader mItemLoader;
-        private final ItemRequest mRequest;
+    private static final class DisplayItemRunnable<Params, Result> implements Runnable {
+        private final ItemLoader<Params, Result> mItemLoader;
+        private final ItemRequest<Params, Result> mRequest;
         private final boolean mFromMemory;
 
-        public DisplayItemRunnable(ItemLoader itemLoader, ItemRequest request, boolean fromMemory) {
+        public DisplayItemRunnable(ItemLoader<Params, Result> itemLoader,
+                ItemRequest<Params, Result> request, boolean fromMemory) {
             mItemLoader = itemLoader;
             mRequest = request;
             mFromMemory = fromMemory;
@@ -325,9 +381,9 @@ class ItemLoader {
                 return;
             }
 
-            Object item = mRequest.item.get();
-            if (item != null) {
-                mItemLoader.mItemEngine.displayItem(itemView, item, mFromMemory);
+            Result result = mRequest.result.get();
+            if (result != null) {
+                mItemLoader.displayItem(itemView, result, mFromMemory);
                 if (itemView != null) {
                     mItemLoader.getItemState(itemView).itemParams = null;
                 }

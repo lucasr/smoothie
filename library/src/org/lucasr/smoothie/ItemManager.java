@@ -1,7 +1,5 @@
 package org.lucasr.smoothie;
 
-import org.lucasr.smoothie.ItemLoader.ItemState;
-
 import android.os.Handler;
 import android.os.Message;
 import android.os.SystemClock;
@@ -20,8 +18,7 @@ public final class ItemManager {
 
     private ItemManaged mManaged;
 
-    private final ItemLoader mItemLoader;
-    private final ItemEngine mItemEngine;
+    private final ItemLoader<?, ?> mItemLoader;
     private final Handler mHandler;
 
     private final boolean mPreloadItemsEnabled;
@@ -32,13 +29,13 @@ public final class ItemManager {
     private boolean mPendingItemsUpdate;
     private boolean mFingerUp;
 
-    private ItemManager(ItemEngine itemEngine, boolean preloadItemsEnabled,
+    private ItemManager(ItemLoader<?, ?> itemLoader, boolean preloadItemsEnabled,
             int preloadItemsCount, int threadPoolSize) {
         mManaged = null;
-        mItemEngine = itemEngine;
 
         mHandler = new ItemsListHandler();
-        mItemLoader = new ItemLoader(itemEngine, mHandler, threadPoolSize);
+        mItemLoader = itemLoader;
+        mItemLoader.init(mHandler, threadPoolSize);
 
         mPreloadItemsEnabled = preloadItemsEnabled;
         mPreloadItemsCount = preloadItemsCount;
@@ -59,17 +56,11 @@ public final class ItemManager {
 
         for (int i = 0; i < count; i++) {
             final View itemView = absListView.getChildAt(i);
-            final ItemState itemState = mItemLoader.getItemState(itemView);
-
-            if (itemState.itemParams != null && itemState.shouldLoadItem) {
-               mItemLoader.displayItem(itemView);
-               itemState.shouldLoadItem = false;
-            }
+            mItemLoader.performDisplayItem(itemView);
         }
 
         if (mPreloadItemsEnabled) {
             int lastFetchedPosition = absListView.getFirstVisiblePosition() + count;
-
             if (lastFetchedPosition > 0) {
                 AsyncBaseAdapter asyncAdapter = (AsyncBaseAdapter) absListView.getAdapter();
                 Adapter adapter = asyncAdapter.getWrappedAdapter();
@@ -78,10 +69,7 @@ public final class ItemManager {
                 for (int i = lastFetchedPosition;
                      i < lastFetchedPosition + mPreloadItemsCount && i < adapterCount;
                      i++) {
-                    Object itemParams = mItemEngine.getItemParams(adapter, i);
-                    if (itemParams != null) {
-                        mItemLoader.preloadItem(itemParams);
-                    }
+                    mItemLoader.performPreloadItem(adapter, i);
                 }
             }
         }
@@ -116,30 +104,12 @@ public final class ItemManager {
     void loadItem(View itemView, int position) {
         AbsListView absListView = mManaged.getAbsListView();
         AsyncBaseAdapter asyncAdapter = (AsyncBaseAdapter) absListView.getAdapter();
-        Object itemParams = mItemEngine.getItemParams(asyncAdapter.getWrappedAdapter(), position);
-        if (itemParams == null) {
-            return;
-        }
 
-        ItemState itemState = mItemLoader.getItemState(itemView);
+        boolean shouldDisplayItem =
+                (mScrollState != OnScrollListener.SCROLL_STATE_FLING && !mPendingItemsUpdate);
 
-        itemState.itemParams = itemParams;
-        boolean itemInMemory = mItemEngine.isItemInMemory(itemParams);
-
-        if (!itemInMemory) {
-            mItemEngine.resetItem(itemView);
-        }
-
-        boolean shouldDisplayThumbnail =
-                (mScrollState != OnScrollListener.SCROLL_STATE_FLING &&
-                 !mPendingItemsUpdate) || itemInMemory;
-
-        if (shouldDisplayThumbnail) {
-            mItemLoader.displayItem(itemView);
-            itemState.shouldLoadItem = false;
-        } else {
-            itemState.shouldLoadItem = true;
-        }
+        mItemLoader.performLoadItem(itemView, asyncAdapter.getWrappedAdapter(),
+                position, shouldDisplayItem);
     }
 
     private class ScrollManager implements AbsListView.OnScrollListener {
@@ -252,14 +222,14 @@ public final class ItemManager {
         private static final int DEFAULT_PRELOAD_ITEMS_COUNT = 4;
         private static final int DEFAULT_THREAD_POOL_SIZE = 2;
 
-        private final ItemEngine mItemEngine;
+        private final ItemLoader<?, ?> mItemLoader;
 
         private boolean mPreloadItemsEnabled;
         private int mPreloadItemsCount;
         private int mThreadPoolSize;
 
-        public Builder(ItemEngine itemEngine) {
-            mItemEngine = itemEngine;
+        public Builder(ItemLoader<?, ?> itemLoader) {
+            mItemLoader = itemLoader;
 
             mPreloadItemsEnabled = DEFAULT_PRELOAD_ITEMS_ENABLED;
             mPreloadItemsCount = DEFAULT_PRELOAD_ITEMS_COUNT;
@@ -282,7 +252,7 @@ public final class ItemManager {
         }
 
         public ItemManager build() {
-            return new ItemManager(mItemEngine, mPreloadItemsEnabled,
+            return new ItemManager(mItemLoader, mPreloadItemsEnabled,
                     mPreloadItemsCount, mThreadPoolSize);
         }
     }
