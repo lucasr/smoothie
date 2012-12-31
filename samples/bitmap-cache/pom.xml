@@ -5,15 +5,15 @@
 
     <modelVersion>4.0.0</modelVersion>
 
-	<groupId>com.github.lucasr.smoothie</groupId>
-	<artifactId>sample</artifactId>
+	<artifactId>sample-bitmapcache</artifactId>
+	<name>Sample: Android-BitmapCache Loader</name>
 	<packaging>apk</packaging>
-	<name>Smoothie Sample</name>
 
 	<parent>
-		<groupId>com.github.lucasr.smoothie</groupId>
-		<artifactId>parent</artifactId>
+		<groupId>org.lucasr.smoothie</groupId>
+		<artifactId>parent-sample</artifactId>
 		<version>0.1</version>
+        <relativePath>../pom.xml</relativePath>
 	</parent>
 
 	<dependencies>

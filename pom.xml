@@ -5,7 +5,7 @@
 
     <modelVersion>4.0.0</modelVersion>
 
-	<groupId>com.github.lucasr.smoothie</groupId>
+	<groupId>org.lucasr.smoothie</groupId>
 	<artifactId>parent</artifactId>
 	<packaging>pom</packaging>
 	<version>0.1</version>
@@ -44,7 +44,7 @@
 
 	<modules>
 		<module>library</module>
-		<module>sample</module>
+        <module>samples</module>
 	</modules>
 
 	<properties>

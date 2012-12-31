@@ -5,13 +5,13 @@
 
     <modelVersion>4.0.0</modelVersion>
 
-	<groupId>com.github.lucasr.smoothie</groupId>
+	<groupId>org.lucasr.smoothie</groupId>
 	<artifactId>library</artifactId>
 	<packaging>jar</packaging>
 	<name>Smoothie Library</name>
 
 	<parent>
-		<groupId>com.github.lucasr.smoothie</groupId>
+		<groupId>org.lucasr.smoothie</groupId>
 		<artifactId>parent</artifactId>
 		<version>0.1</version>
 	</parent>

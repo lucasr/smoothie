@@ -1,4 +1,4 @@
-package org.lucasr.smoothie.samples;
+package org.lucasr.smoothie.samples.bitmapcache;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;

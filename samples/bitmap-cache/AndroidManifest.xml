@@ -1,5 +1,5 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-          package="org.lucasr.smoothie.samples"
+          package="org.lucasr.smoothie.samples.bitmapcache"
           android:versionCode="1"
           android:versionName="Alpha 1" >
 

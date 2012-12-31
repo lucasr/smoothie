@@ -1,7 +1,7 @@
-package org.lucasr.smoothie.samples;
+package org.lucasr.smoothie.samples.bitmapcache;
 
 import org.lucasr.smoothie.ItemLoader;
-import org.lucasr.smoothie.samples.PatternsListAdapter.ViewHolder;
+import org.lucasr.smoothie.samples.bitmapcache.PatternsListAdapter.ViewHolder;
 
 import uk.co.senab.bitmapcache.BitmapLruCache;
 import uk.co.senab.bitmapcache.CacheableBitmapWrapper;
