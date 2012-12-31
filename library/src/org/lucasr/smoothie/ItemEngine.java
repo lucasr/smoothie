@@ -19,7 +19,7 @@ public abstract class ItemEngine {
         return loadItem(itemParams);
     }
 
-    public Object getPreloadItemParams(Adapter adapter, int position) {
+    public Object getItemParams(Adapter adapter, int position) {
         return null;
     }
 

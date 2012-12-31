@@ -2,8 +2,6 @@ package org.lucasr.smoothie.samples;
 
 import java.util.ArrayList;
 
-import org.lucasr.smoothie.ItemManager;
-
 import android.content.Context;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -15,12 +13,10 @@ import android.widget.TextView;
 public class PatternsListAdapter extends BaseAdapter {
 	private final ArrayList<String> mUrls;
 	private final Context mContext;
-	private final ItemManager mItemManager;
 
-	public PatternsListAdapter(Context context, ArrayList<String> urls, ItemManager itemManager) {
+	public PatternsListAdapter(Context context, ArrayList<String> urls) {
 		mUrls = urls;
 		mContext = context;
-		mItemManager = itemManager;
 	}
 
 	@Override
@@ -57,8 +53,6 @@ public class PatternsListAdapter extends BaseAdapter {
 		} else {
 		    holder = (ViewHolder) convertView.getTag();
 		}
-
-		mItemManager.loadItem(convertView, mUrls.get(position));
 
 		return convertView;
 	}

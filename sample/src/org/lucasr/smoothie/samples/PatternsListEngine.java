@@ -37,7 +37,7 @@ public class PatternsListEngine extends ItemEngine {
     }
 
     @Override
-    public Object getPreloadItemParams(Adapter adapter, int position) {
+    public Object getItemParams(Adapter adapter, int position) {
         return adapter.getItem(position);
     }
 

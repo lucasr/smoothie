@@ -5,32 +5,32 @@ import java.util.ArrayList;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.lucasr.smoothie.AsyncListView;
 import org.lucasr.smoothie.ItemManager;
 
 import uk.co.senab.bitmapcache.BitmapLruCache;
 import android.app.Activity;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.widget.ListView;
 
 public class MainActivity extends Activity {
-    private ListView mListView;
-    private ItemManager mItemManager;
+    private AsyncListView mListView;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
         setContentView(R.layout.main_activity);
-        mListView = (ListView) findViewById(R.id.list);
+        mListView = (AsyncListView) findViewById(R.id.list);
 
         BitmapLruCache cache = App.getInstance(this).getBitmapCache();
         PatternsListEngine engine = new PatternsListEngine(cache);
 
-        ItemManager.Builder builder = new ItemManager.Builder(mListView, engine);
+        ItemManager.Builder builder = new ItemManager.Builder(engine);
         builder.setPreloadItemsEnabled(true).setPreloadItemsCount(5);
         builder.setThreadPoolSize(4);
-        mItemManager = builder.build();
+
+        mListView.setItemManager(builder.build());
 
         new LoadPatternsListTask().execute();
     }
@@ -60,7 +60,7 @@ public class MainActivity extends Activity {
 
        @Override
        protected void onPostExecute(ArrayList<String> urls) {
-           PatternsListAdapter adapter = new PatternsListAdapter(MainActivity.this, urls, mItemManager);
+           PatternsListAdapter adapter = new PatternsListAdapter(MainActivity.this, urls);
            mListView.setAdapter(adapter);
        }
    }

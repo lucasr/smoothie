@@ -12,12 +12,13 @@ import android.widget.AbsListView;
 import android.widget.AbsListView.OnScrollListener;
 import android.widget.Adapter;
 import android.widget.AdapterView;
+import android.widget.AdapterView.OnItemSelectedListener;
 
 public final class ItemManager {
     private static final int MESSAGE_UPDATE_ITEMS = 1;
     private static final int DELAY_SHOW_ITEMS = 550;
 
-    private final AbsListView mAbsListView;
+    private ItemManaged mManaged;
 
     private final ItemLoader mItemLoader;
     private final ItemEngine mItemEngine;
@@ -31,9 +32,9 @@ public final class ItemManager {
     private boolean mPendingItemsUpdate;
     private boolean mFingerUp;
 
-    private ItemManager(AbsListView absListView, ItemEngine itemEngine, boolean preloadItemsEnabled,
+    private ItemManager(ItemEngine itemEngine, boolean preloadItemsEnabled,
             int preloadItemsCount, int threadPoolSize) {
-        mAbsListView = absListView;
+        mManaged = null;
         mItemEngine = itemEngine;
 
         mHandler = new ItemsListHandler();
@@ -44,18 +45,20 @@ public final class ItemManager {
         mLastPreloadTimestamp = SystemClock.uptimeMillis();
 
         mScrollState = OnScrollListener.SCROLL_STATE_IDLE;
-        mAbsListView.setOnScrollListener(new ScrollManager());
-        mAbsListView.setOnTouchListener(new FingerTracker());
-        mAbsListView.setOnItemSelectedListener(new SelectionTracker());
     }
 
     private void updateItems() {
+        if (mManaged == null) {
+            return;
+        }
+
+        AbsListView absListView = mManaged.getAbsListView();
         mPendingItemsUpdate = false;
 
-        final int count = mAbsListView.getChildCount();
+        final int count = absListView.getChildCount();
 
         for (int i = 0; i < count; i++) {
-            final View itemView = mAbsListView.getChildAt(i);
+            final View itemView = absListView.getChildAt(i);
             final ItemState itemState = mItemLoader.getItemState(itemView);
 
             if (itemState.itemParams != null && itemState.shouldLoadItem) {
@@ -65,16 +68,17 @@ public final class ItemManager {
         }
 
         if (mPreloadItemsEnabled) {
-            int lastFetchedPosition = mAbsListView.getFirstVisiblePosition() + count;
+            int lastFetchedPosition = absListView.getFirstVisiblePosition() + count;
 
             if (lastFetchedPosition > 0) {
-                Adapter adapter = mAbsListView.getAdapter();
+                AsyncBaseAdapter asyncAdapter = (AsyncBaseAdapter) absListView.getAdapter();
+                Adapter adapter = asyncAdapter.getWrappedAdapter();
                 final int adapterCount = adapter.getCount();
 
                 for (int i = lastFetchedPosition;
                      i < lastFetchedPosition + mPreloadItemsCount && i < adapterCount;
                      i++) {
-                    Object itemParams = mItemEngine.getPreloadItemParams(adapter, i);
+                    Object itemParams = mItemEngine.getItemParams(adapter, i);
                     if (itemParams != null) {
                         mItemLoader.preloadItem(itemParams);
                     }
@@ -85,7 +89,7 @@ public final class ItemManager {
         mItemLoader.cancelObsoleteRequests(mLastPreloadTimestamp);
         mLastPreloadTimestamp = SystemClock.uptimeMillis();
 
-        mAbsListView.invalidate();
+        absListView.invalidate();
     }
 
     private void postUpdateItems() {
@@ -98,7 +102,25 @@ public final class ItemManager {
         mHandler.sendMessage(msg);
     }
 
-    public final void loadItem(View itemView, Object itemParams) {
+    void setItemManaged(ItemManaged itemManaged) {
+        mManaged = itemManaged;
+
+        if (mManaged != null) {
+            AbsListView absListView = mManaged.getAbsListView();
+            absListView.setOnScrollListener(new ScrollManager());
+            absListView.setOnTouchListener(new FingerTracker());
+            absListView.setOnItemSelectedListener(new SelectionTracker());
+        }
+    }
+
+    void loadItem(View itemView, int position) {
+        AbsListView absListView = mManaged.getAbsListView();
+        AsyncBaseAdapter asyncAdapter = (AsyncBaseAdapter) absListView.getAdapter();
+        Object itemParams = mItemEngine.getItemParams(asyncAdapter.getWrappedAdapter(), position);
+        if (itemParams == null) {
+            return;
+        }
+
         ItemState itemState = mItemLoader.getItemState(itemView);
 
         itemState.itemParams = itemParams;
@@ -142,11 +164,24 @@ public final class ItemManager {
             }
 
             mScrollState = scrollState;
+
+            if (mManaged != null) {
+                OnScrollListener l = mManaged.getListeners().getOnScrollListener();
+                if (l != null) {
+                    l.onScrollStateChanged(view, scrollState);
+                }
+            }
         }
 
         @Override
         public void onScroll(AbsListView view, int firstVisibleItem, int visibleItemCount,
                 int totalItemCount) {
+            if (mManaged != null) {
+                OnScrollListener l = mManaged.getListeners().getOnScrollListener();
+                if (l != null) {
+                    l.onScroll(view, firstVisibleItem, visibleItemCount, totalItemCount);
+                }
+            }
         }
     }
 
@@ -162,6 +197,13 @@ public final class ItemManager {
                 postUpdateItems();
             }
 
+            if (mManaged != null) {
+                OnTouchListener l = mManaged.getListeners().getOnTouchListener();
+                if (l != null) {
+                    return l.onTouch(view, event);
+                }
+            }
+
             return false;
         }
     }
@@ -173,10 +215,23 @@ public final class ItemManager {
                 mScrollState = OnScrollListener.SCROLL_STATE_IDLE;
                 postUpdateItems();
             }
+
+            if (mManaged != null) {
+                OnItemSelectedListener l = mManaged.getListeners().getOnItemSelectedListener();
+                if (l != null) {
+                    l.onItemSelected(adapterView, view, position, id);
+                }
+            }
         }
 
         @Override
         public void onNothingSelected(AdapterView<?> adapterView) {
+            if (mManaged != null) {
+                OnItemSelectedListener l = mManaged.getListeners().getOnItemSelectedListener();
+                if (l != null) {
+                    l.onNothingSelected(adapterView);
+                }
+            }
         }
     }
 
@@ -197,15 +252,13 @@ public final class ItemManager {
         private static final int DEFAULT_PRELOAD_ITEMS_COUNT = 4;
         private static final int DEFAULT_THREAD_POOL_SIZE = 2;
 
-        private final AbsListView mAbsListView;
         private final ItemEngine mItemEngine;
 
         private boolean mPreloadItemsEnabled;
         private int mPreloadItemsCount;
         private int mThreadPoolSize;
 
-        public Builder(AbsListView absListView, ItemEngine itemEngine) {
-            mAbsListView = absListView;
+        public Builder(ItemEngine itemEngine) {
             mItemEngine = itemEngine;
 
             mPreloadItemsEnabled = DEFAULT_PRELOAD_ITEMS_ENABLED;
@@ -229,7 +282,7 @@ public final class ItemManager {
         }
 
         public ItemManager build() {
-            return new ItemManager(mAbsListView, mItemEngine, mPreloadItemsEnabled,
+            return new ItemManager(mItemEngine, mPreloadItemsEnabled,
                     mPreloadItemsCount, mThreadPoolSize);
         }
     }
