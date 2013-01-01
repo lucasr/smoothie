@@ -44,7 +44,11 @@ public class AsyncGridView extends GridView implements AsyncAbsListView {
 
     @Override
     public ListAdapter getAdapter() {
-        return mItemManaged.getWrappedAdapter();
+        if (mItemManaged != null) {
+            return mItemManaged.getWrappedAdapter();
+        } else {
+            return super.getAdapter();
+        }
     }
 
     @Override
