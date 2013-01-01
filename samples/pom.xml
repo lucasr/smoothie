@@ -19,6 +19,7 @@
 
     <modules>
         <module>bitmap-cache</module>
+        <module>gallery</module>
     </modules>
 </project>
 
