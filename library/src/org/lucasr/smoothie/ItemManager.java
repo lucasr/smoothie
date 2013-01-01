@@ -62,8 +62,7 @@ public final class ItemManager {
         if (mPreloadItemsEnabled) {
             int lastFetchedPosition = absListView.getFirstVisiblePosition() + count;
             if (lastFetchedPosition > 0) {
-                AsyncBaseAdapter asyncAdapter = (AsyncBaseAdapter) absListView.getAdapter();
-                Adapter adapter = asyncAdapter.getWrappedAdapter();
+                Adapter adapter = absListView.getAdapter();
                 final int adapterCount = adapter.getCount();
 
                 for (int i = lastFetchedPosition;
@@ -103,13 +102,12 @@ public final class ItemManager {
 
     void loadItem(View itemView, int position) {
         AbsListView absListView = mManaged.getAbsListView();
-        AsyncBaseAdapter asyncAdapter = (AsyncBaseAdapter) absListView.getAdapter();
+        Adapter adapter = absListView.getAdapter();
 
         boolean shouldDisplayItem =
                 (mScrollState != OnScrollListener.SCROLL_STATE_FLING && !mPendingItemsUpdate);
 
-        mItemLoader.performLoadItem(itemView, asyncAdapter.getWrappedAdapter(),
-                position, shouldDisplayItem);
+        mItemLoader.performLoadItem(itemView, adapter, position, shouldDisplayItem);
     }
 
     private class ScrollManager implements AbsListView.OnScrollListener {

@@ -9,6 +9,7 @@ import android.widget.ListAdapter;
 
 class ItemManaged {
     private final AbsListView mAbsListView;
+    private ListAdapter mWrappedAdapter;
     private ItemManager mItemManager;
 
     private boolean mInstallingManager;
@@ -19,6 +20,7 @@ class ItemManaged {
 
     ItemManaged(AbsListView absListView) {
         mAbsListView = absListView;
+        mWrappedAdapter = null;
         mItemManager = null;
 
         mInstallingManager = false;
@@ -42,6 +44,7 @@ class ItemManaged {
 
         if (itemManager != null) {
             itemManager.setItemManaged(this);
+            mAbsListView.setAdapter(wrapAdapter(mWrappedAdapter));
         } else {
             mAbsListView.setOnScrollListener(mOnScrollListener);
             mAbsListView.setOnTouchListener(mOnTouchListener);
@@ -98,8 +101,14 @@ class ItemManaged {
         mOnItemSelectedListener = l;
     }
 
+    ListAdapter getWrappedAdapter() {
+        return mWrappedAdapter;
+    }
+
     ListAdapter wrapAdapter(ListAdapter adapter) {
-        if (mItemManager != null) {
+        mWrappedAdapter = adapter;
+
+        if (mItemManager != null && adapter != null) {
             adapter = new AsyncBaseAdapter(mItemManager, (BaseAdapter) adapter);
         }
 

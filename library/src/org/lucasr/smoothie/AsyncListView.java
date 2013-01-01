@@ -43,6 +43,11 @@ public class AsyncListView extends ListView implements AsyncAbsListView {
     }
 
     @Override
+    public ListAdapter getAdapter() {
+        return mItemManaged.getWrappedAdapter();
+    }
+
+    @Override
     public void setAdapter(ListAdapter adapter) {
         super.setAdapter(mItemManaged.wrapAdapter(adapter));
     }
