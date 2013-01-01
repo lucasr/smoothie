@@ -135,22 +135,18 @@ public final class ItemManager {
 
             mScrollState = scrollState;
 
-            if (mManaged != null) {
-                OnScrollListener l = mManaged.getListeners().getOnScrollListener();
-                if (l != null) {
-                    l.onScrollStateChanged(view, scrollState);
-                }
+            OnScrollListener l = mManaged.getOnScrollListener();
+            if (l != null) {
+                l.onScrollStateChanged(view, scrollState);
             }
         }
 
         @Override
         public void onScroll(AbsListView view, int firstVisibleItem, int visibleItemCount,
                 int totalItemCount) {
-            if (mManaged != null) {
-                OnScrollListener l = mManaged.getListeners().getOnScrollListener();
-                if (l != null) {
-                    l.onScroll(view, firstVisibleItem, visibleItemCount, totalItemCount);
-                }
+            OnScrollListener l = mManaged.getOnScrollListener();
+            if (l != null) {
+                l.onScroll(view, firstVisibleItem, visibleItemCount, totalItemCount);
             }
         }
     }
@@ -167,11 +163,9 @@ public final class ItemManager {
                 postUpdateItems();
             }
 
-            if (mManaged != null) {
-                OnTouchListener l = mManaged.getListeners().getOnTouchListener();
-                if (l != null) {
-                    return l.onTouch(view, event);
-                }
+            OnTouchListener l = mManaged.getOnTouchListener();
+            if (l != null) {
+                return l.onTouch(view, event);
             }
 
             return false;
@@ -186,21 +180,17 @@ public final class ItemManager {
                 postUpdateItems();
             }
 
-            if (mManaged != null) {
-                OnItemSelectedListener l = mManaged.getListeners().getOnItemSelectedListener();
-                if (l != null) {
-                    l.onItemSelected(adapterView, view, position, id);
-                }
+            OnItemSelectedListener l = mManaged.getOnItemSelectedListener();
+            if (l != null) {
+                l.onItemSelected(adapterView, view, position, id);
             }
         }
 
         @Override
         public void onNothingSelected(AdapterView<?> adapterView) {
-            if (mManaged != null) {
-                OnItemSelectedListener l = mManaged.getListeners().getOnItemSelectedListener();
-                if (l != null) {
-                    l.onNothingSelected(adapterView);
-                }
+            OnItemSelectedListener l = mManaged.getOnItemSelectedListener();
+            if (l != null) {
+                l.onNothingSelected(adapterView);
             }
         }
     }

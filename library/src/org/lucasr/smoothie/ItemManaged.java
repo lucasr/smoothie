@@ -9,13 +9,19 @@ import android.widget.ListAdapter;
 
 class ItemManaged {
     private final AbsListView mAbsListView;
-    private final DelegateListeners mListeners;
     private ItemManager mItemManager;
+
+    private OnScrollListener mOnScrollListener;
+    private OnTouchListener mOnTouchListener;
+    private OnItemSelectedListener mOnItemSelectedListener;
 
     ItemManaged(AbsListView absListView) {
         mAbsListView = absListView;
-        mListeners = new DelegateListeners();
         mItemManager = null;
+
+        mOnScrollListener = null;
+        mOnTouchListener = null;
+        mOnItemSelectedListener = null;
     }
 
     boolean hasItemManager() {
@@ -31,9 +37,9 @@ class ItemManaged {
         if (itemManager != null) {
             itemManager.setItemManaged(this);
         } else {
-            mAbsListView.setOnScrollListener(mListeners.getOnScrollListener());
-            mAbsListView.setOnTouchListener(mListeners.getOnTouchListener());
-            mAbsListView.setOnItemSelectedListener(mListeners.getOnItemSelectedListener());
+            mAbsListView.setOnScrollListener(mOnScrollListener);
+            mAbsListView.setOnTouchListener(mOnTouchListener);
+            mAbsListView.setOnItemSelectedListener(mOnItemSelectedListener);
 
             ListAdapter adapter = mAbsListView.getAdapter();
             if (adapter != null) {
@@ -49,32 +55,28 @@ class ItemManaged {
         return mAbsListView;
     }
 
-    DelegateListeners getListeners() {
-        return mListeners;
+    OnScrollListener getOnScrollListener() {
+        return mOnScrollListener;
     }
 
     void setOnScrollListener(OnScrollListener l) {
-        if (mItemManager != null) {
-            mListeners.setOnScrollListener(l);
-        } else {
-            mAbsListView.setOnScrollListener(l);
-        }
+        mOnScrollListener = l;
+    }
+
+    OnTouchListener getOnTouchListener() {
+        return mOnTouchListener;
     }
 
     void setOnTouchListener(OnTouchListener l) {
-        if (mItemManager != null) {
-            mListeners.setOnTouchListener(l);
-        } else {
-            mAbsListView.setOnTouchListener(l);
-        }
+        mOnTouchListener = l;
+    }
+
+    OnItemSelectedListener getOnItemSelectedListener() {
+        return mOnItemSelectedListener;
     }
 
     void setOnItemSelectedListener(OnItemSelectedListener l) {
-        if (mItemManager != null) {
-            mListeners.setOnItemSelectedListener(l);
-        } else {
-            mAbsListView.setOnItemSelectedListener(l);
-        }
+        mOnItemSelectedListener = l;
     }
 
     ListAdapter wrapAdapter(ListAdapter adapter) {
