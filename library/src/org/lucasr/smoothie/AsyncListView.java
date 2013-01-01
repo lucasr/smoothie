@@ -20,27 +20,24 @@ public class AsyncListView extends ListView implements AsyncAbsListView {
 
     @Override
     public void setOnScrollListener(OnScrollListener l) {
-        if (mItemManaged.hasItemManager()) {
-            mItemManaged.setOnScrollListener(l);
-        } else {
+        mItemManaged.setOnScrollListener(l);
+        if (!mItemManaged.hasItemManager()) {
             super.setOnScrollListener(l);
         }
     }
 
     @Override
     public void setOnTouchListener(OnTouchListener l) {
-        if (mItemManaged.hasItemManager()) {
-            mItemManaged.setOnTouchListener(l);
-        } else {
+        mItemManaged.setOnTouchListener(l);
+        if (!mItemManaged.hasItemManager()) {
             super.setOnTouchListener(l);
         }
     }
 
     @Override
     public void setOnItemSelectedListener(OnItemSelectedListener l) {
-        if (mItemManaged.hasItemManager()) {
-            mItemManaged.setOnItemSelectedListener(l);
-        } else {
+        mItemManaged.setOnItemSelectedListener(l);
+        if (!mItemManaged.hasItemManager()) {
             super.setOnItemSelectedListener(l);
         }
     }

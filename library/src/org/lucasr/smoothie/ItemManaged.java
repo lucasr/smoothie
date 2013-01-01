@@ -11,6 +11,8 @@ class ItemManaged {
     private final AbsListView mAbsListView;
     private ItemManager mItemManager;
 
+    private boolean mInstallingManager;
+
     private OnScrollListener mOnScrollListener;
     private OnTouchListener mOnTouchListener;
     private OnItemSelectedListener mOnItemSelectedListener;
@@ -18,6 +20,8 @@ class ItemManaged {
     ItemManaged(AbsListView absListView) {
         mAbsListView = absListView;
         mItemManager = null;
+
+        mInstallingManager = false;
 
         mOnScrollListener = null;
         mOnTouchListener = null;
@@ -34,6 +38,8 @@ class ItemManaged {
             mItemManager = null;
         }
 
+        mInstallingManager = true;
+
         if (itemManager != null) {
             itemManager.setItemManaged(this);
         } else {
@@ -49,6 +55,7 @@ class ItemManaged {
         }
 
         mItemManager = itemManager;
+        mInstallingManager = false;
     }
 
     AbsListView getAbsListView() {
@@ -60,6 +67,10 @@ class ItemManaged {
     }
 
     void setOnScrollListener(OnScrollListener l) {
+        if (mInstallingManager) {
+            return;
+        }
+
         mOnScrollListener = l;
     }
 
@@ -68,6 +79,10 @@ class ItemManaged {
     }
 
     void setOnTouchListener(OnTouchListener l) {
+        if (mInstallingManager) {
+            return;
+        }
+
         mOnTouchListener = l;
     }
 
@@ -76,6 +91,10 @@ class ItemManaged {
     }
 
     void setOnItemSelectedListener(OnItemSelectedListener l) {
+        if (mInstallingManager) {
+            return;
+        }
+
         mOnItemSelectedListener = l;
     }
 
