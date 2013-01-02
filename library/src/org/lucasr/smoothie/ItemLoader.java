@@ -15,6 +15,7 @@ import java.util.concurrent.TimeUnit;
 import android.os.Handler;
 import android.os.Process;
 import android.os.SystemClock;
+import android.support.v4.util.LruCache;
 import android.util.Log;
 import android.view.View;
 import android.widget.Adapter;
@@ -27,18 +28,34 @@ public abstract class ItemLoader<Params, Result> {
     private Map<View, ItemState<Params>> mItemStates;
     private Map<Params, ItemRequest<Params, Result>> mItemRequests;
     private ThreadPoolExecutor mExecutorService;
+    private LruCache<Params, Result> mMemCache;
 
     static final class ItemState<Params> {
         public boolean shouldLoadItem;
         public Params itemParams;
     }
 
-    void init(Handler handler, int threadPoolSize) {
+    void init(Handler handler, int threadPoolSize, boolean memCacheEnabled, int memCacheMaxSize) {
         mHandler = handler;
         mItemStates = Collections.synchronizedMap(new WeakHashMap<View, ItemState<Params>>());
         mItemRequests = Collections.synchronizedMap(new WeakHashMap<Params, ItemRequest<Params, Result>>());
         mExecutorService = new ItemsThreadPoolExecutor<Params, Result>(threadPoolSize, threadPoolSize, 60,
                 TimeUnit.SECONDS, new PriorityBlockingQueue<Runnable>());
+
+        mMemCache = null;
+        if (memCacheEnabled) {
+            mMemCache = new LruCache<Params, Result>(memCacheMaxSize) {
+                @Override
+                protected int sizeOf(Params key, Result value) {
+                    int itemSize = getItemSizeInMemory(key, value);
+                    if (itemSize < 0) {
+                        itemSize = super.sizeOf(key, value);
+                    }
+
+                    return itemSize;
+                }
+            };
+        }
     }
 
     void performDisplayItem(View itemView) {
@@ -220,10 +237,22 @@ public abstract class ItemLoader<Params, Result> {
     }
 
     public boolean isItemInMemory(Params itemParams) {
+        if (mMemCache != null) {
+            return (mMemCache.get(itemParams) != null);
+        }
+
         return false;
     }
 
+    public int getItemSizeInMemory(Params itemParams, Result result) {
+        return -1;
+    }
+
     public Result loadItemFromMemory(Params itemParams) {
+        if (mMemCache != null) {
+            return mMemCache.get(itemParams);
+        }
+
         return null;
     }
 
@@ -341,6 +370,10 @@ public abstract class ItemLoader<Params, Result> {
                     Log.d(LOGTAG, "Done loading image: " + mRequest.itemParams);
                 }
 
+                if (result != null && mItemLoader.mMemCache != null) {
+                    mItemLoader.mMemCache.put(mRequest.itemParams, result);
+                }
+
                 if (mItemLoader.itemViewReused(mRequest)) {
                     return;
                 }
@@ -349,6 +382,10 @@ public abstract class ItemLoader<Params, Result> {
             } else {
                 Result result = mItemLoader.preloadItem(mRequest.itemParams);
                 mRequest.result = new SoftReference<Result>(result);
+
+                if (result != null && mItemLoader.mMemCache != null) {
+                    mItemLoader.mMemCache.put(mRequest.itemParams, result);
+                }
 
                 if (ENABLE_LOGGING) {
                     Log.d(LOGTAG, "Done preloading: " + mRequest.itemParams);

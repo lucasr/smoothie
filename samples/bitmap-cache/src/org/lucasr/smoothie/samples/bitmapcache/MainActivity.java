@@ -28,6 +28,7 @@ public class MainActivity extends Activity {
 
         ItemManager.Builder builder = new ItemManager.Builder(loader);
         builder.setPreloadItemsEnabled(true).setPreloadItemsCount(5);
+        builder.setMemoryCacheEnabled(false);
         builder.setThreadPoolSize(4);
 
         mListView.setItemManager(builder.build());

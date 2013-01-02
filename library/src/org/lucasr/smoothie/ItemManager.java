@@ -30,12 +30,13 @@ public final class ItemManager {
     private boolean mFingerUp;
 
     private ItemManager(ItemLoader<?, ?> itemLoader, boolean preloadItemsEnabled,
-            int preloadItemsCount, int threadPoolSize) {
+            int preloadItemsCount, int threadPoolSize, boolean memCacheEnabled,
+            int memCacheMaxSize) {
         mManaged = null;
 
         mHandler = new ItemsListHandler();
         mItemLoader = itemLoader;
-        mItemLoader.init(mHandler, threadPoolSize);
+        mItemLoader.init(mHandler, threadPoolSize, memCacheEnabled, memCacheMaxSize);
 
         mPreloadItemsEnabled = preloadItemsEnabled;
         mPreloadItemsCount = preloadItemsCount;
@@ -209,12 +210,18 @@ public final class ItemManager {
         private static final boolean DEFAULT_PRELOAD_ITEMS_ENABLED = false;
         private static final int DEFAULT_PRELOAD_ITEMS_COUNT = 4;
         private static final int DEFAULT_THREAD_POOL_SIZE = 2;
+        private static final boolean DEFAULT_MEM_CACHE_ENABLED = true;
+        private static final int DEFAULT_MEM_CACHE_MAX_SIZE = 10;
+        private static final float DEFAULT_MEM_CACHE_HEAP_RATIO = 1f / 8f;
+        private static final float MAX_MEM_CACHE_HEAP_RATIO = 0.75f;
 
         private final ItemLoader<?, ?> mItemLoader;
 
         private boolean mPreloadItemsEnabled;
         private int mPreloadItemsCount;
         private int mThreadPoolSize;
+        private boolean mMemCacheEnabled;
+        private int mMemCacheMaxSize;
 
         public Builder(ItemLoader<?, ?> itemLoader) {
             mItemLoader = itemLoader;
@@ -222,6 +229,12 @@ public final class ItemManager {
             mPreloadItemsEnabled = DEFAULT_PRELOAD_ITEMS_ENABLED;
             mPreloadItemsCount = DEFAULT_PRELOAD_ITEMS_COUNT;
             mThreadPoolSize = DEFAULT_THREAD_POOL_SIZE;
+            mMemCacheEnabled = DEFAULT_MEM_CACHE_ENABLED;
+            mMemCacheMaxSize = DEFAULT_MEM_CACHE_MAX_SIZE;
+        }
+
+        private static long getHeapSize() {
+            return Runtime.getRuntime().maxMemory();
         }
 
         public Builder setPreloadItemsEnabled(boolean preloadItemsEnabled) {
@@ -239,9 +252,29 @@ public final class ItemManager {
             return this;
         }
 
+        public Builder setMemoryCacheEnabled(boolean memCacheEnabled) {
+            mMemCacheEnabled = memCacheEnabled;
+            return this;
+        }
+
+        public Builder setMemoryCacheMaxSize(int memCacheMaxSize) {
+            mMemCacheMaxSize = memCacheMaxSize;
+            return this;
+        }
+
+        public Builder setMemoryCacheMaxSizeUsingHeapSize() {
+            return setMemoryCacheMaxSizeUsingHeapSize(DEFAULT_MEM_CACHE_HEAP_RATIO);
+        }
+
+        public Builder setMemoryCacheMaxSizeUsingHeapSize(float percentageOfHeap) {
+            int size = Math.round(getHeapSize() * Math.min(percentageOfHeap, MAX_MEM_CACHE_HEAP_RATIO));
+            return setMemoryCacheMaxSize(size);
+        }
+
         public ItemManager build() {
             return new ItemManager(mItemLoader, mPreloadItemsEnabled,
-                    mPreloadItemsCount, mThreadPoolSize);
+                    mPreloadItemsCount, mThreadPoolSize, mMemCacheEnabled,
+                    mMemCacheMaxSize);
         }
     }
 }

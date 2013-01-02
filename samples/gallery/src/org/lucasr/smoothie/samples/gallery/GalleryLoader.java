@@ -26,6 +26,11 @@ public class GalleryLoader extends ItemLoader<Long, Bitmap> {
     }
 
     @Override
+    public int getItemSizeInMemory(Long id, Bitmap bitmap) {
+        return bitmap.getRowBytes() * bitmap.getHeight();
+    }
+
+    @Override
     public void resetItem(View itemView) {
         ViewHolder holder = (ViewHolder) itemView.getTag();
         holder.image.setImageDrawable(null);

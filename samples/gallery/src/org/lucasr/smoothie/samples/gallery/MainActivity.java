@@ -34,6 +34,7 @@ public class MainActivity extends FragmentActivity implements LoaderManager.Load
 
         ItemManager.Builder builder = new ItemManager.Builder(loader);
         builder.setPreloadItemsEnabled(true).setPreloadItemsCount(6);
+        builder.setMemoryCacheEnabled(true).setMemoryCacheMaxSizeUsingHeapSize();
         builder.setThreadPoolSize(4);
 
         mGridView.setItemManager(builder.build());
