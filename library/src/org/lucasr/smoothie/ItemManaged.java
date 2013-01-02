@@ -44,7 +44,7 @@ class ItemManaged {
 
         if (itemManager != null) {
             itemManager.setItemManaged(this);
-            mAbsListView.setAdapter(wrapAdapter(mWrappedAdapter));
+            mAbsListView.setAdapter(wrapAdapter(itemManager, mWrappedAdapter));
         } else {
             mAbsListView.setOnScrollListener(mOnScrollListener);
             mAbsListView.setOnTouchListener(mOnTouchListener);
@@ -106,10 +106,14 @@ class ItemManaged {
     }
 
     ListAdapter wrapAdapter(ListAdapter adapter) {
+        return wrapAdapter(mItemManager, adapter);
+    }
+
+    ListAdapter wrapAdapter(ItemManager itemManager, ListAdapter adapter) {
         mWrappedAdapter = adapter;
 
-        if (mItemManager != null && adapter != null) {
-            adapter = new AsyncBaseAdapter(mItemManager, (BaseAdapter) adapter);
+        if (itemManager != null && adapter != null) {
+            adapter = new AsyncBaseAdapter(itemManager, (BaseAdapter) adapter);
         }
 
         return adapter;
