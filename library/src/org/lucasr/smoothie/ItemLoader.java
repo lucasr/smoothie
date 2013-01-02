@@ -48,6 +48,9 @@ public abstract class ItemLoader<Params, Result> {
             mMemCache = new LruCache<Params, Result>(memCacheMaxSize) {
                 @Override
                 protected int sizeOf(Params key, Result value) {
+                    // If itemSize is negative here, this means getItemSizeInMemory()
+                    // hasn't been overridden and we simply fallback to the default
+                    // method implementation.
                     int itemSize = getItemSizeInMemory(key, value);
                     if (itemSize < 0) {
                         itemSize = super.sizeOf(key, value);
@@ -84,6 +87,7 @@ public abstract class ItemLoader<Params, Result> {
                 Log.d(LOGTAG, "(Display) No pending item request, creating new: " + itemParams);
             }
 
+            // No existing item request, create a new one
             request = new ItemRequest<Params, Result>(itemView, itemParams);
             mItemRequests.put(itemParams, request);
         } else {
@@ -91,10 +95,15 @@ public abstract class ItemLoader<Params, Result> {
                 Log.d(LOGTAG, "(Display) There's a pending item request, reusing: " + itemParams);
             }
 
+            // There's a pending item request for these parameters, promote the
+            // existing request with higher priority. See LoadItemFutureTask
+            // for details on request priorities.
             request.timestamp = SystemClock.uptimeMillis();
             request.itemView = new SoftReference<View>(itemView);
         }
 
+        // We're actually running this item request, make sure
+        // this item is not requested again.
         itemState.shouldLoadItem = false;
 
         Result result = loadItemFromMemory(itemParams);
@@ -105,6 +114,8 @@ public abstract class ItemLoader<Params, Result> {
 
             cancelItemRequest(itemParams);
 
+            // The item is in memory, no need to asynchronously load it
+            // Run the final item display routine straight away.
             request.result = new SoftReference<Result>(result);
             mHandler.post(new DisplayItemRunnable<Params, Result>(this, request, true));
 
@@ -115,6 +126,7 @@ public abstract class ItemLoader<Params, Result> {
     }
 
     void performLoadItem(View itemView, Adapter adapter, int position, boolean shouldDisplayItem) {
+        // Loader returned no parameters for the item, just bail
         Params itemParams = getItemParams(adapter, position);
         if (itemParams == null) {
             return;
@@ -123,11 +135,14 @@ public abstract class ItemLoader<Params, Result> {
         ItemState<Params> itemState = getItemState(itemView);
         itemState.itemParams = itemParams;
 
+        // If item is not in memory, reset the item view into
+        // loading state.
         boolean itemInMemory = isItemInMemory(itemParams);
         if (!itemInMemory) {
             resetItem(itemView);
         }
 
+        // Mark the view for loading
         itemState.shouldLoadItem = true;
 
         if (shouldDisplayItem || itemInMemory) {
@@ -141,6 +156,8 @@ public abstract class ItemLoader<Params, Result> {
             return;
         }
 
+        // If item is memory, just cancel any pending requests for
+        // this item and return as the item has already been loaded.
         if (isItemInMemory(itemParams)) {
             if (ENABLE_LOGGING) {
                 Log.d(LOGTAG, "Item is in memory, bailing: " + itemParams);
@@ -156,6 +173,7 @@ public abstract class ItemLoader<Params, Result> {
                 Log.d(LOGTAG, "(Preload) No pending item request, creating new: " + itemParams);
             }
 
+            // No pending item preload request, create a new one
             request = new ItemRequest<Params, Result>(itemParams);
             mItemRequests.put(itemParams, request);
 
@@ -165,6 +183,9 @@ public abstract class ItemLoader<Params, Result> {
                 Log.d(LOGTAG, "(Preload) There's a pending item request, reusing: " + itemParams);
             }
 
+            // There's a pending item request for these parameters, demote the
+            // existing request with loader priority as it's just a preloading
+            // request. See LoadItemFutureTask for details on request priorities.
             request.timestamp = SystemClock.uptimeMillis();
             request.itemView = null;
         }
@@ -187,6 +208,7 @@ public abstract class ItemLoader<Params, Result> {
             }
         }
 
+        // Actually remove any cancelled tasks from the queue
         mExecutorService.purge();
     }
 
@@ -217,15 +239,23 @@ public abstract class ItemLoader<Params, Result> {
     }
 
     private boolean itemViewReused(ItemRequest<Params, Result> request) {
+        // If itemView is null, this means this is a preload request
+        // with no target view to display. No view to be possibly recycled
+        // in this case.
         if (request.itemView == null) {
             return false;
         }
 
+        // If the request's soft reference to the view is now null, this means
+        // the view has been disposed from memory. Just bail.
         View itemView = request.itemView.get();
         if (itemView == null) {
             return true;
         }
 
+        // If the parameters associated with the view doesn't match the ones
+        // in the matching request, this means the view has been recycled to
+        // display something else.
         final Params itemParams = getItemState(itemView).itemParams;
         if (itemParams == null || !request.itemParams.equals(itemParams)) {
             return true;
@@ -308,7 +338,6 @@ public abstract class ItemLoader<Params, Result> {
                     new LoadItemFutureTask<Params, Result>((LoadItemRunnable<Params, Result>) task);
 
             execute(ftask);
-
             return ftask;
         }
     }
@@ -327,6 +356,12 @@ public abstract class ItemLoader<Params, Result> {
             ItemRequest<Params, Result> r1 = mRunnable.getItemRequest();
             ItemRequest<Params, Result> r2 = another.mRunnable.getItemRequest();
 
+            // A null itemView here means that the requests has no target view
+            // to display the loaded content, which means it's a preload request.
+            // Preloading requests always have lower priority than requests for items
+            // that are visible on screen. Request priorities are dynamically updated
+            // as the user scroll the list view. See performDisplayItem() and
+            // performPreloadItem() for details.
             if (r1.itemView != null && r2.itemView == null) {
                 return -1;
             } else if (r1.itemView == null && r2.itemView != null) {
@@ -363,6 +398,8 @@ public abstract class ItemLoader<Params, Result> {
                 return;
             }
 
+            // If itemView is not null, this is a requests for an item
+            // that is currently visible on screen.
             if (mRequest.itemView != null) {
                 Result result = mItemLoader.loadItem(mRequest.itemParams);
                 mRequest.result = new SoftReference<Result>(result);
@@ -379,8 +416,10 @@ public abstract class ItemLoader<Params, Result> {
                     return;
                 }
 
+                // Item is now loaded, run the display routine
                 mItemLoader.mHandler.post(new DisplayItemRunnable<Params, Result>(mItemLoader, mRequest, false));
             } else {
+                // This is just a preload requests, we're done here
                 Result result = mItemLoader.preloadItem(mRequest.itemParams);
                 mRequest.result = new SoftReference<Result>(result);
 

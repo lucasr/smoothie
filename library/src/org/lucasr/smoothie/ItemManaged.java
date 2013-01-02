@@ -35,26 +35,34 @@ class ItemManaged {
     }
 
     void setItemManager(ItemManager itemManager) {
+        // Ensure the whatever current manager is detached
+        // from this managed component.
         if (mItemManager != null) {
             mItemManager.setItemManaged(null);
             mItemManager = null;
         }
 
+        // This is to avoid holding a reference to ItemManager's
+        // listeners here while installing the new manager.
         mInstallingManager = true;
 
         if (itemManager != null) {
+            // It's important that mItemManager is null at this point so
+            // that its listeners are set properly.
             itemManager.setItemManaged(this);
+
+            // Make sure that we wrap whatever adapter has been set
+            // before the item manager was installed.
             mAbsListView.setAdapter(wrapAdapter(itemManager, mWrappedAdapter));
         } else {
+            // Restore the listeners set on the view before the item
+            // manager was installed.
             mAbsListView.setOnScrollListener(mOnScrollListener);
             mAbsListView.setOnTouchListener(mOnTouchListener);
             mAbsListView.setOnItemSelectedListener(mOnItemSelectedListener);
 
-            ListAdapter adapter = mAbsListView.getAdapter();
-            if (adapter != null) {
-                AsyncBaseAdapter asyncAdapter = (AsyncBaseAdapter) adapter;
-                mAbsListView.setAdapter(asyncAdapter.getWrappedAdapter());
-            }
+            // Remove wrapper adapter and re-apply the original one
+            mAbsListView.setAdapter(mWrappedAdapter);
         }
 
         mItemManager = itemManager;

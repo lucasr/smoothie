@@ -53,14 +53,17 @@ public final class ItemManager {
         AbsListView absListView = mManaged.getAbsListView();
         mPendingItemsUpdate = false;
 
+        // Perform display routine on each of the visible items
+        // in the list view.
         final int count = absListView.getChildCount();
-
         for (int i = 0; i < count; i++) {
             final View itemView = absListView.getChildAt(i);
             mItemLoader.performDisplayItem(itemView);
         }
 
         if (mPreloadItemsEnabled) {
+            // Preload items beyond the visible viewport with a lower
+            // request priority. See ItemLoader for details.
             int lastFetchedPosition = absListView.getFirstVisiblePosition() + count;
             if (lastFetchedPosition > 0) {
                 Adapter adapter = absListView.getAdapter();
@@ -74,6 +77,9 @@ public final class ItemManager {
             }
         }
 
+        // Cancel all pending item requests that haven't got their timestamps
+        // updated in this round. In practice, this means requests for items
+        // that are not relevant anymore for the current scroll position.
         mItemLoader.cancelObsoleteRequests(mLastPreloadTimestamp);
         mLastPreloadTimestamp = SystemClock.uptimeMillis();
 
@@ -95,6 +101,9 @@ public final class ItemManager {
 
         if (mManaged != null) {
             AbsListView absListView = mManaged.getAbsListView();
+
+            // These listeners will still run the current list view
+            // listeners as delegates. See ItemManaged.
             absListView.setOnScrollListener(new ScrollManager());
             absListView.setOnTouchListener(new FingerTracker());
             absListView.setOnItemSelectedListener(new SelectionTracker());
@@ -108,6 +117,9 @@ public final class ItemManager {
         boolean shouldDisplayItem =
                 (mScrollState != OnScrollListener.SCROLL_STATE_FLING && !mPendingItemsUpdate);
 
+        // This runs on each Adapter.getView() call. Will only trigger an
+        // actual item loading request if the view is not being flung or finger
+        // is down scrolling the view.
         mItemLoader.performLoadItem(itemView, adapter, position, shouldDisplayItem);
     }
 
@@ -117,6 +129,8 @@ public final class ItemManager {
             boolean stoppedFling = mScrollState == SCROLL_STATE_FLING &&
                                    scrollState != SCROLL_STATE_FLING;
 
+            // Stopped flinging, trigger a round of item updates (after
+            // a small delay, just in case).
             if (stoppedFling) {
                 final Message msg = mHandler.obtainMessage(MESSAGE_UPDATE_ITEMS,
                                                            ItemManager.this);
@@ -158,6 +172,8 @@ public final class ItemManager {
             mFingerUp = (action == MotionEvent.ACTION_UP ||
                          action == MotionEvent.ACTION_CANCEL);
 
+            // If finger is up and view is not flinging, trigger a new round
+            // of item updates.
             if (mFingerUp && mScrollState != OnScrollListener.SCROLL_STATE_FLING) {
                 postUpdateItems();
             }
