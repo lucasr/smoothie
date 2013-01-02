@@ -33,7 +33,7 @@ public class MainActivity extends FragmentActivity implements LoaderManager.Load
         GalleryLoader loader = new GalleryLoader(this);
 
         ItemManager.Builder builder = new ItemManager.Builder(loader);
-        builder.setPreloadItemsEnabled(true).setPreloadItemsCount(6);
+        builder.setPreloadItemsEnabled(true).setPreloadItemsCount(12);
         builder.setMemoryCacheEnabled(true).setMemoryCacheMaxSizeUsingHeapSize();
         builder.setThreadPoolSize(4);
 
@@ -51,7 +51,7 @@ public class MainActivity extends FragmentActivity implements LoaderManager.Load
                                        ImageColumns.DATE_TAKEN },
                         null,
                         null,
-                        null
+                        ImageColumns.DATE_TAKEN + " DESC"
         );
         default:
             return null;
