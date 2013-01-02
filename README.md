@@ -23,23 +23,25 @@ How do I use it?
 
 1. Add Smoothie's jar as a dependency to your project.
 
-2. Implement an `ItemEngine`. You're only required to override two methods:
-   `loadItem()` and `displayItem()`. You can override more methods if you
-   want to handle loading items from memory, preloading items, resetting
-   item views, etc.
+2. Add an AsyncListView or AsyncGridView to your layout.
+
+2. Implement an `ItemLoader`. You're only required to override three methods:
+   `getItemParams()`, loadItem()`, and `displayItem()`. You can override more
+   methods if you want to handle loading items from memory, preloading items,
+   resetting item views, etc.
 
 3. On Activity/Fragment creation, attach an `ItemManager` instance to your
-   ListView/GridView:
+   AsyncListView/AsyncGridView:
 
    ```java
-   ItemManager.Builder builder = new ItemManager.Builder(yourListOrGridView, yourItemEngine);
+   ItemManager.Builder builder = new ItemManager.Builder(yourItemLoader);
    builder.setPreloadItemsEnabled(true).setPreloadItemsCount(5);
    builder.setThreadPoolSize(4);
-   ItemManager s = builder.build();
-   ```
+   ItemManager itemManager = builder.build();
 
-4. On your adapter's `getView()`, call `ItemManager`'s `loadItem()` passing the item
-   view and the parameters necessary to load the item asynchronously.
+   AsyncListView listView = (AsyncListView) findViewById(R.id.list);
+   listView.setItemManager(itemManager);
+   ```
 
 The sample app has an example of an ItemEngine powered by
 [Android-BitmapCache](https://github.com/chrisbanes/Android-BitmapCache) that
