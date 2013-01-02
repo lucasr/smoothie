@@ -23,10 +23,10 @@ How do I use it?
 
 1. Add Smoothie's jar as a dependency to your project.
 
-2. Add an AsyncListView or AsyncGridView to your layout.
+2. Add an `AsyncListView` or `AsyncGridView` to your layout.
 
 2. Implement an `ItemLoader`. You're only required to override three methods:
-   `getItemParams()`, loadItem()`, and `displayItem()`. You can override more
+   `getItemParams()`, `loadItem()`, and `displayItem()`. You can override more
    methods if you want to handle loading items from memory, preloading items,
    resetting item views, etc.
 
