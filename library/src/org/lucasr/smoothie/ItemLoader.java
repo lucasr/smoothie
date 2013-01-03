@@ -39,7 +39,7 @@ public abstract class ItemLoader<Params, Result> {
     void init(Handler handler, int threadPoolSize, boolean memCacheEnabled, int memCacheMaxSize) {
         mHandler = handler;
         mItemStates = Collections.synchronizedMap(new WeakHashMap<View, ItemState<Params>>());
-        mItemRequests = new ConcurrentHashMap<Params, ItemRequest<Params, Result>>();
+        mItemRequests = new ConcurrentHashMap<Params, ItemRequest<Params, Result>>(8, 0.9f, 1);
         mExecutorService = new ItemsThreadPoolExecutor<Params, Result>(threadPoolSize, threadPoolSize, 60,
                 TimeUnit.SECONDS, new PriorityBlockingQueue<Runnable>());
 
