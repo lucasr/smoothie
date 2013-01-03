@@ -53,12 +53,14 @@ public final class ItemManager {
         AbsListView absListView = mManaged.getAbsListView();
         mPendingItemsUpdate = false;
 
+        long timestamp = SystemClock.uptimeMillis();
+
         // Perform display routine on each of the visible items
         // in the list view.
         final int count = absListView.getChildCount();
         for (int i = 0; i < count; i++) {
             final View itemView = absListView.getChildAt(i);
-            mItemLoader.performDisplayItem(itemView);
+            mItemLoader.performDisplayItem(itemView, timestamp++);
         }
 
         if (mPreloadItemsEnabled) {
@@ -72,7 +74,7 @@ public final class ItemManager {
                 for (int i = lastFetchedPosition;
                      i < lastFetchedPosition + mPreloadItemsCount && i < adapterCount;
                      i++) {
-                    mItemLoader.performPreloadItem(adapter, i);
+                    mItemLoader.performPreloadItem(adapter, i, timestamp++);
                 }
             }
         }
@@ -81,7 +83,7 @@ public final class ItemManager {
         // updated in this round. In practice, this means requests for items
         // that are not relevant anymore for the current scroll position.
         mItemLoader.cancelObsoleteRequests(mLastPreloadTimestamp);
-        mLastPreloadTimestamp = SystemClock.uptimeMillis();
+        mLastPreloadTimestamp = timestamp;
 
         absListView.invalidate();
     }

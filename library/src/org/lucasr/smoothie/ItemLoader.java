@@ -62,7 +62,7 @@ public abstract class ItemLoader<Params, Result> {
         }
     }
 
-    void performDisplayItem(View itemView) {
+    void performDisplayItem(View itemView, long timestamp) {
         ItemState<Params> itemState = getItemState(itemView);
         if (!itemState.shouldLoadItem) {
             if (ENABLE_LOGGING) {
@@ -88,7 +88,7 @@ public abstract class ItemLoader<Params, Result> {
             }
 
             // No existing item request, create a new one
-            request = new ItemRequest<Params, Result>(itemView, itemParams);
+            request = new ItemRequest<Params, Result>(itemView, itemParams, timestamp);
             mItemRequests.put(itemParams, request);
         } else {
             if (ENABLE_LOGGING) {
@@ -98,7 +98,7 @@ public abstract class ItemLoader<Params, Result> {
             // There's a pending item request for these parameters, promote the
             // existing request with higher priority. See LoadItemFutureTask
             // for details on request priorities.
-            request.timestamp = SystemClock.uptimeMillis();
+            request.timestamp = timestamp;
             request.itemView = new SoftReference<View>(itemView);
         }
 
@@ -146,11 +146,11 @@ public abstract class ItemLoader<Params, Result> {
         itemState.shouldLoadItem = true;
 
         if (shouldDisplayItem || itemInMemory) {
-            performDisplayItem(itemView);
+            performDisplayItem(itemView, SystemClock.uptimeMillis());
         }
     }
 
-    void performPreloadItem(Adapter adapter, int position) {
+    void performPreloadItem(Adapter adapter, int position, long timestamp) {
         Params itemParams = getItemParams(adapter, position);
         if (itemParams == null) {
             return;
@@ -174,7 +174,7 @@ public abstract class ItemLoader<Params, Result> {
             }
 
             // No pending item preload request, create a new one
-            request = new ItemRequest<Params, Result>(itemParams);
+            request = new ItemRequest<Params, Result>(itemParams, timestamp);
             mItemRequests.put(itemParams, request);
 
             request.loadItemTask = mExecutorService.submit(new LoadItemRunnable<Params, Result>(this, request));
@@ -186,7 +186,7 @@ public abstract class ItemLoader<Params, Result> {
             // There's a pending item request for these parameters, demote the
             // existing request with loader priority as it's just a preloading
             // request. See LoadItemFutureTask for details on request priorities.
-            request.timestamp = SystemClock.uptimeMillis();
+            request.timestamp = timestamp;
             request.itemView = null;
         }
     }
@@ -304,19 +304,19 @@ public abstract class ItemLoader<Params, Result> {
         public Long timestamp;
         public Future<?> loadItemTask;
 
-        public ItemRequest(Params itemParams) {
+        public ItemRequest(Params itemParams, long timestamp) {
             this.itemView = null;
             this.itemParams = itemParams;
             this.result = new SoftReference<Result>(null);
-            this.timestamp = SystemClock.uptimeMillis();
+            this.timestamp = timestamp;
             this.loadItemTask = null;
         }
 
-        public ItemRequest(View itemView, Params itemParams) {
+        public ItemRequest(View itemView, Params itemParams, long timestamp) {
             this.itemView = new SoftReference<View>(itemView);
             this.itemParams = itemParams;
             this.result = new SoftReference<Result>(null);
-            this.timestamp = SystemClock.uptimeMillis();
+            this.timestamp = timestamp;
             this.loadItemTask = null;
         }
     }
