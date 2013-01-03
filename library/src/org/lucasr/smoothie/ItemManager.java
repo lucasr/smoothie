@@ -66,7 +66,7 @@ public final class ItemManager {
         if (mPreloadItemsEnabled) {
             // Preload items beyond the visible viewport with a lower
             // request priority. See ItemLoader for details.
-            int lastFetchedPosition = absListView.getFirstVisiblePosition() + count;
+            int lastFetchedPosition = absListView.getLastVisiblePosition() + 1;
             if (lastFetchedPosition > 0) {
                 Adapter adapter = absListView.getAdapter();
                 final int adapterCount = adapter.getCount();
