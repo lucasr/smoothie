@@ -112,6 +112,9 @@ import android.widget.Adapter;
  * in the target ImageView that will be shown until the image is actually
  * loaded.</p>
  *
+ * @param <Params> - The parameters for loading an item.
+ * @param <Result> - The result of the item loading operation.
+ *
  * @author Lucas Rocha <lucasr@lucasr.org>
  */
 public abstract class ItemLoader<Params, Result> {
