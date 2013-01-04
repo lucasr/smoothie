@@ -24,7 +24,7 @@ import android.widget.Adapter;
 /**
  * ItemLoader is responsible for loading and displaying items
  * in {@link AsyncListView} or {@link AsyncGridView}. This is the class
- * you should inherit from to implement your app-specific item loading
+ * you should subclass to implement your app-specific item loading
  * and displaying logic.
  *
  * <h2>Usage</h2>
@@ -32,8 +32,8 @@ import android.widget.Adapter;
  * three methods: {@link #loadItem(Object)}, {@link #displayItem(View, Object, boolean)},
  * and {@link #getItemParams(Adapter, int)}. You can override more methods if you want
  * to have custom item loading from memory ({@link #loadItemFromMemory(Object)},
- * {@link #isItemInMemory(Object)}, {@link #getItemSizeInMemory(Object, Object)}),
- * resetting item views ({@link #resetItem(View)}), etc.</p>
+ * {@link #getItemSizeInMemory(Object, Object)}), resetting item views
+ * ({@link #resetItem(View)}), etc.</p>
  *
  * <p>Here is an example of subclassing:</p>
  * <pre>
@@ -84,7 +84,7 @@ import android.widget.Adapter;
  *     item is loaded. This step should return all the parameters necessary for
  *     loading the item. This is necessary to avoid touching the Adapter in a
  *     background thread.</li>
- *     <li>{@link #isItemInMemory(Object)}, involved on the UI thread before actually
+ *     <li>{@link #loadItemFromMemory(Object)}, involved on the UI thread before actually
  *     loading the item. If the item is already in memory, skip the next step and
  *     display the item immediately in the last step.</li>
  *     <li>{@link #loadItem(Object)}, invoked on a background thread. This call
@@ -95,7 +95,24 @@ import android.widget.Adapter;
  * </ol>
  *
  * <h2>ItemLoader and Adapter</h2>
- * TODO
+ * <p>Once you have an {@link ItemManager} set in an {@link AsyncListView} or
+ * {@link AsyncGridView}, your Adapter will behave exactly the same. In your
+ * {@link android.widget.Adapter #getView(int, View, android.view.ViewGroup)},
+ * you should display all the elements that are directly available from the
+ * Adapter's backing data. e.g. the backing data structure or database
+ * Cursor.</p>
+ *
+ * <p>The ItemLoader should handle the item data that needs to be loaded
+ * asynchronously in a background thread. e.g. downloading images from
+ * the cloud or loading files from disk.</p>
+ *
+ * <p>It's assumed that your
+ * {@link android.widget.Adapter #getView(int, View, android.view.ViewGroup)}
+ * will reset the item view to placeholder state regarding the data that
+ * the ItemLoader will load. For example, if your item has images that will
+ * be loaded asynchronously, your adapter should set the placeholder state
+ * in the target ImageView that will be shown until the image is actually
+ * loaded.</p>
  *
  * @author Lucas Rocha <lucasr@lucasr.org>
  */
