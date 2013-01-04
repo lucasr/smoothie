@@ -12,6 +12,27 @@ import android.widget.Adapter;
 import android.widget.AdapterView;
 import android.widget.AdapterView.OnItemSelectedListener;
 
+/**
+ * <p>ItemManager is responsible for tying the user interaction
+ * (scroll, touch, item selection, etc) on the target
+ * {@link AsyncAbsListView} with its associated {@link ItemLoader}.
+ * Once an ItemManager is set on an {@link AsyncAbsListView},
+ * the {@link ItemLoader} hooks will be called as needed to
+ * asynchronously load and display items.</p>
+ *
+ * <p>ItemManager instances should be created using its
+ * {@link ItemManager.Builder Builder} class. An example call:</p>
+ *
+ * <pre>
+ * ItemManager.Builder builder = new ItemManager.Builder();
+ * builder.setMemoryCacheEnabled(true).setMemoryCacheMaxSizeUsingHeapSize();
+ * builder.setPreloadItemsEnabled(true).setPreloadItemsCount(10);
+ *
+ * ItemManager itemManager = builder.build();
+ * </pre>
+ *
+ * @author Lucas Rocha <lucasr@lucasr.org>
+ */
 public final class ItemManager {
     private static final int MESSAGE_UPDATE_ITEMS = 1;
     private static final int DELAY_SHOW_ITEMS = 550;
@@ -224,6 +245,12 @@ public final class ItemManager {
         }
     }
 
+
+    /**
+    * Builder class for {@link ItemManager}.
+    *
+    * @author Lucas Rocha <lucasr@lucasr.org>
+    */
     public final static class Builder {
         private static final boolean DEFAULT_PRELOAD_ITEMS_ENABLED = false;
         private static final int DEFAULT_PRELOAD_ITEMS_COUNT = 4;
@@ -233,6 +260,10 @@ public final class ItemManager {
         private static final float DEFAULT_MEM_CACHE_HEAP_RATIO = 1f / 8f;
         private static final float MAX_MEM_CACHE_HEAP_RATIO = 0.75f;
 
+        // Only used for Javadoc
+        static final float DEFAULT_MEM_CACHE_HEAP_PERCENTAGE = DEFAULT_MEM_CACHE_HEAP_RATIO * 100;
+        static final float MAX_MEM_CACHE_HEAP_PERCENTAGE = MAX_MEM_CACHE_HEAP_RATIO * 100;
+
         private final ItemLoader<?, ?> mItemLoader;
 
         private boolean mPreloadItemsEnabled;
@@ -241,6 +272,9 @@ public final class ItemManager {
         private boolean mMemCacheEnabled;
         private int mMemCacheMaxSize;
 
+        /**
+         * @param itemLoader - Your {@link ItemLoader} subclass implementation.
+         */
         public Builder(ItemLoader<?, ?> itemLoader) {
             mItemLoader = itemLoader;
 
@@ -255,40 +289,113 @@ public final class ItemManager {
             return Runtime.getRuntime().maxMemory();
         }
 
+        /**
+         * Sets whether offscreen item preloading should be enabled.
+         * Defaults to {@value #DEFAULT_PRELOAD_ITEMS_ENABLED}.
+         *
+         * @param preloadItemsEnabled - {@code true} to enable offscreen item
+         *        preloading.
+         *
+         * @return This Builder object to allow for chaining of calls to set
+         *         methods.
+         */
         public Builder setPreloadItemsEnabled(boolean preloadItemsEnabled) {
             mPreloadItemsEnabled = preloadItemsEnabled;
             return this;
         }
 
+        /**
+         * Sets the maximum number of offscreen items to be preloaded after
+         * the visible items finish loading. Defaults to
+         * {@value #DEFAULT_PRELOAD_ITEMS_COUNT}.
+         *
+         * @param preloadItemsCount - Number of offscreen items to preload.
+         *
+         * @return This Builder object to allow for chaining of calls to set
+         *         methods.
+         */
         public Builder setPreloadItemsCount(int preloadItemsCount) {
             mPreloadItemsCount = preloadItemsCount;
             return this;
         }
 
+        /**
+         * Sets the number of background threads available to asynchronously
+         * load items in the target view. Defaults to
+         * {@value #DEFAULT_THREAD_POOL_SIZE}.
+         *
+         * @param threadPoolSize - Number of background threads to be available
+         *        in the pool.
+         *
+         * @return This Builder object to allow for chaining of calls to set
+         *         methods.
+         */
         public Builder setThreadPoolSize(int threadPoolSize) {
             mThreadPoolSize = threadPoolSize;
             return this;
         }
 
+        /**
+         * Sets whether the built-in memory cache should be enabled.
+         * Defaults to {@value #DEFAULT_MEM_CACHE_ENABLED}.
+         *
+         * @param memCacheEnabled - {@code true} to enable the built-in memory
+         *        cache.
+         *
+         * @return This Builder object to allow for chaining of calls to set
+         *         methods.
+         */
         public Builder setMemoryCacheEnabled(boolean memCacheEnabled) {
             mMemCacheEnabled = memCacheEnabled;
             return this;
         }
 
+        /**
+         * Sets the maximum number of bytes the built-in memory cache should
+         * use to store values. Defaults to
+         * {@value #DEFAULT_MEM_CACHE_MAX_SIZE_MB}MB.
+         *
+         * @param memCacheMaxSize - The maximum memory cache size in bytes.
+         *
+         * @return This Builder object to allow for chaining of calls to set
+         *         methods.
+         */
         public Builder setMemoryCacheMaxSize(int memCacheMaxSize) {
             mMemCacheMaxSize = memCacheMaxSize;
             return this;
         }
 
+        /**
+         * Sets the memory cache maximum size to be the default value of
+         * {@value #DEFAULT_MEM_CACHE_HEAP_PERCENTAGE}% of heap size.
+         *
+         * @return This Builder object to allow for chaining of calls to set
+         *         methods.
+         */
         public Builder setMemoryCacheMaxSizeUsingHeapSize() {
             return setMemoryCacheMaxSizeUsingHeapSize(DEFAULT_MEM_CACHE_HEAP_RATIO);
         }
 
+        /**
+         * Sets the built-in memory cache maximum size to be the given
+         * percentage of heap size. This is capped at
+         * {@value #MAX_MEM_CACHE_HEAP_PERCENTAGE}% of the app heap size.
+         *
+         * @param percentageOfHeap - percentage of heap size. Valid values are
+         *            0.0 <= x <= {@value #MAX_MEM_CACHE_HEAP_RATIO}.
+         *
+         * @return This Builder object to allow for chaining of calls to set
+         *         methods.
+         */
         public Builder setMemoryCacheMaxSizeUsingHeapSize(float percentageOfHeap) {
             int size = Math.round(getHeapSize() * Math.min(percentageOfHeap, MAX_MEM_CACHE_HEAP_RATIO));
             return setMemoryCacheMaxSize(size);
         }
 
+        /**
+         * @return A new {@link ItemManager} created with the arguments
+         *         supplied to this builder.
+         */
         public ItemManager build() {
             return new ItemManager(mItemLoader, mPreloadItemsEnabled,
                     mPreloadItemsCount, mThreadPoolSize, mMemCacheEnabled,

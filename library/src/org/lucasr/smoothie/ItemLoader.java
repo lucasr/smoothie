@@ -21,9 +21,87 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Adapter;
 
+/**
+ * ItemLoader is responsible for loading and displaying items
+ * in {@link AsyncListView} or {@link AsyncGridView}. This is the class
+ * you should inherit from to implement your app-specific item loading
+ * and displaying logic.
+ *
+ * <h2>Usage</h2>
+ * <p>ItemLoader must be subclassed to be used. The subclass will override at least
+ * three methods: {@link #loadItem(Object)}, {@link #displayItem(View, Object, boolean)},
+ * and {@link #getItemParams(Adapter, int)}. You can override more methods if you want
+ * to have custom item loading from memory ({@link #loadItemFromMemory(Object)},
+ * {@link #isItemInMemory(Object)}, {@link #getItemSizeInMemory(Object, Object)}),
+ * resetting item views ({@link #resetItem(View)}), etc.</p>
+ *
+ * <p>Here is an example of subclassing:</p>
+ * <pre>
+ * public class YourItemLoader extends ItemLoader<Long, Bitmap> {
+ *     private final Context mContext;
+ *
+ *     public YourItemLoader(Context context) {
+ *         mContext = context;
+ *     }
+ *
+ *     @Override
+ *     public Long getItemParams(Adapter adapter, int position) {
+ *        Cursor c = (Cursor) adapter.getItem(position);
+ *        return c.getLong(c.getColumnIndex(ImageColumns._ID));
+ *     }
+ *
+ *     @Override
+ *     public Bitmap loadItem(Long id) {
+ *         Uri uri = Uri.withAppendedPath(Images.Media.EXTERNAL_CONTENT_URI, String.valueOf(id));
+ *         return MediaStore.Images.Media.getBitmap(mContext.getContentResolver(), uri);
+ *     }
+ *
+ *     @Override
+ *     public void displayItem(View itemView, Bitmap result, boolean fromMemory) {
+ *         ImageView image = (ImageView) itemView.findViewById(R.id.image);
+ *         image.setImageBitmap(result);
+ *     }
+ * }
+ * </pre>
+ *
+ * <p>The ItemLoader should be passed to {@link ItemManager.Builder Builder} constructor:</p>
+ * <pre>
+ * ItemManager.Builder = new ItemManager.Builder(new YourItemLoader(context));
+ * </pre>
+ *
+ * <h2>ItemLoader's generic types</h2>
+ * <p>The two types used by an ItemLoader are the following:</p>
+ * <ol>
+ *     <li><code>Params</code>, the type of the parameters sent to {@link #loadItem(Object)}.</li>
+ *     <li><code>Result</code>, the type of the result returned by {@link #loadItem(Object)}
+ *     which will be sent to {@link #displayItem(View, Object, boolean)}.</li>
+ * </ol>
+ *
+ * <h2>The 4 steps</h2>
+ * <p>When an ItemLoader is in action, each item will go through 4 steps:</p>
+ * <ol>
+ *     <li>{@link #getItemParams(Adapter, int)}, invoked on the UI thread before the
+ *     item is loaded. This step should return all the parameters necessary for
+ *     loading the item. This is necessary to avoid touching the Adapter in a
+ *     background thread.</li>
+ *     <li>{@link #isItemInMemory(Object)}, involved on the UI thread before actually
+ *     loading the item. If the item is already in memory, skip the next step and
+ *     display the item immediately in the last step.</li>
+ *     <li>{@link #loadItem(Object)}, invoked on a background thread. This call
+ *     should return the item data that needs to be loaded asynchronously such
+ *     as images or online data.</li>
+ *     <li>{@link #displayItem(View, Object, boolean)}, invoked on the UI thread
+ *     after the item finishes loading.</li>
+ * </ol>
+ *
+ * <h2>ItemLoader and Adapter</h2>
+ * TODO
+ *
+ * @author Lucas Rocha <lucasr@lucasr.org>
+ */
 public abstract class ItemLoader<Params, Result> {
     private static final String LOGTAG = "SmoothieItemLoader";
-    private static final boolean ENABLE_LOGGING = true;
+    private static final boolean ENABLE_LOGGING = false;
 
     private Handler mHandler;
     private Map<View, ItemState<Params>> mItemStates;
