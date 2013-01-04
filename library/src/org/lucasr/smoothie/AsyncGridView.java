@@ -20,7 +20,6 @@ import android.widget.ListAdapter;
  *
  * <pre>
  * ItemManager.Builder builder = new ItemManager.Builder(new YourItemLoader());
- * builder.setMemoryCacheEnabled(true).setMemoryCacheMaxSizeUsingHeapSize();
  * builder.setPreloadItemsEnabled(true).setPreloadItemsCount(10);
  * ItemManager itemManager = builder.build();
  *

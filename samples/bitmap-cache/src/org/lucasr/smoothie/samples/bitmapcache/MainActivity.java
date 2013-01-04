@@ -28,7 +28,6 @@ public class MainActivity extends Activity {
 
         ItemManager.Builder builder = new ItemManager.Builder(loader);
         builder.setPreloadItemsEnabled(true).setPreloadItemsCount(5);
-        builder.setMemoryCacheEnabled(false);
         builder.setThreadPoolSize(4);
 
         mListView.setItemManager(builder.build());
@@ -37,7 +36,7 @@ public class MainActivity extends Activity {
     }
 
     private class LoadPatternsListTask extends AsyncTask<Void, Void, ArrayList<String>> {
-        static final int NUM_PATTERNS = 40;
+        static final int NUM_PATTERNS = 100;
         static final String URL = "http://www.colourlovers.com/api/patterns/new?format=json&numResults=" + NUM_PATTERNS;
 
         @Override

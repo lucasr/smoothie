@@ -18,19 +18,29 @@ import android.graphics.drawable.TransitionDrawable;
 import android.net.Uri;
 import android.provider.MediaStore.Images;
 import android.provider.MediaStore.Images.ImageColumns;
+import android.support.v4.util.LruCache;
 import android.view.View;
 import android.widget.Adapter;
 
 public class GalleryLoader extends ItemLoader<Long, Bitmap> {
     private final Context mContext;
+    private final LruCache<Long, Bitmap> mMemCache;
 
     public GalleryLoader(Context context) {
         mContext = context;
+
+        int maxSize = (int) (Runtime.getRuntime().maxMemory() * 0.4f);
+        mMemCache = new LruCache<Long, Bitmap>(maxSize) {
+            @Override
+            protected int sizeOf(Long id, Bitmap bitmap) {
+                return bitmap.getRowBytes() * bitmap.getHeight();
+            }
+        };
     }
 
     @Override
-    public int getItemSizeInMemory(Long id, Bitmap bitmap) {
-        return bitmap.getRowBytes() * bitmap.getHeight();
+    public Bitmap loadItemFromMemory(Long id) {
+        return mMemCache.get(id);
     }
 
     @Override
@@ -91,7 +101,12 @@ public class GalleryLoader extends ItemLoader<Long, Bitmap> {
         int width = res.getDimensionPixelSize(R.dimen.image_width);
         int height = res.getDimensionPixelSize(R.dimen.image_height);
 
-        return decodeSampledBitmapFromResource(imageUri, width, height);
+        Bitmap bitmap = decodeSampledBitmapFromResource(imageUri, width, height);
+        if (bitmap != null) {
+            mMemCache.put(id, bitmap);
+        }
+
+        return bitmap;
     }
 
     @Override

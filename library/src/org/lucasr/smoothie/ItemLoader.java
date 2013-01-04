@@ -16,7 +16,6 @@ import java.util.concurrent.TimeUnit;
 import android.os.Handler;
 import android.os.Process;
 import android.os.SystemClock;
-import android.support.v4.util.LruCache;
 import android.util.Log;
 import android.view.View;
 import android.widget.Adapter;
@@ -83,7 +82,7 @@ import android.widget.Adapter;
  *     item is loaded. This step should return all the parameters necessary for
  *     loading the item. This is necessary to avoid touching the Adapter in a
  *     background thread.</li>
- *     <li>{@link #loadItemFromMemory(Object)}, involved on the UI thread before actually
+ *     <li>{@link #loadItemFromMemory(Object)}, invoked on the UI thread before actually
  *     loading the item. If the item is already in memory, skip the next step and
  *     display the item immediately in the last step.</li>
  *     <li>{@link #loadItem(Object)}, invoked on a background thread. This call
@@ -123,37 +122,18 @@ public abstract class ItemLoader<Params, Result> {
     private Map<View, ItemState<Params>> mItemStates;
     private Map<Params, ItemRequest<Params, Result>> mItemRequests;
     private ThreadPoolExecutor mExecutorService;
-    private LruCache<Params, Result> mMemCache;
 
     static final class ItemState<Params> {
         public boolean shouldLoadItem;
         public Params itemParams;
     }
 
-    void init(Handler handler, int threadPoolSize, boolean memCacheEnabled, int memCacheMaxSize) {
+    void init(Handler handler, int threadPoolSize) {
         mHandler = handler;
         mItemStates = Collections.synchronizedMap(new WeakHashMap<View, ItemState<Params>>());
         mItemRequests = new ConcurrentHashMap<Params, ItemRequest<Params, Result>>(8, 0.9f, 1);
         mExecutorService = new ItemsThreadPoolExecutor<Params, Result>(threadPoolSize, threadPoolSize, 60,
                 TimeUnit.SECONDS, new PriorityBlockingQueue<Runnable>());
-
-        mMemCache = null;
-        if (memCacheEnabled) {
-            mMemCache = new LruCache<Params, Result>(memCacheMaxSize) {
-                @Override
-                protected int sizeOf(Params key, Result value) {
-                    // If itemSize is negative here, this means getItemSizeInMemory()
-                    // hasn't been overridden and we simply fallback to the default
-                    // method implementation.
-                    int itemSize = getItemSizeInMemory(key, value);
-                    if (itemSize < 0) {
-                        itemSize = super.sizeOf(key, value);
-                    }
-
-                    return itemSize;
-                }
-            };
-        }
     }
 
     void performDisplayItem(View itemView, long timestamp) {
@@ -355,15 +335,7 @@ public abstract class ItemLoader<Params, Result> {
         return false;
     }
 
-    public int getItemSizeInMemory(Params itemParams, Result result) {
-        return -1;
-    }
-
     public Result loadItemFromMemory(Params itemParams) {
-        if (mMemCache != null) {
-            return mMemCache.get(itemParams);
-        }
-
         return null;
     }
 
@@ -476,10 +448,6 @@ public abstract class ItemLoader<Params, Result> {
 
             Result result = mItemLoader.loadItem(mRequest.itemParams);
             mRequest.result = new SoftReference<Result>(result);
-
-            if (result != null && mItemLoader.mMemCache != null) {
-                mItemLoader.mMemCache.put(mRequest.itemParams, result);
-            }
 
             // If itemView is not null, this is a requests for an item
             // that is currently visible on screen.
