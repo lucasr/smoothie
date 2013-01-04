@@ -338,13 +338,11 @@ public abstract class ItemLoader<Params, Result> {
         return false;
     }
 
-    public Result loadItemFromMemory(Params itemParams) {
-        return null;
-    }
-
     public abstract Params getItemParams(Adapter adapter, int position);
 
     public abstract Result loadItem(Params itemParams);
+
+    public abstract Result loadItemFromMemory(Params itemParams);
 
     public abstract void displayItem(View itemView, Result result, boolean fromMemory);
 
