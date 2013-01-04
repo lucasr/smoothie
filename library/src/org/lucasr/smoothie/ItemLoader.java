@@ -286,6 +286,10 @@ public abstract class ItemLoader<Params, Result> {
         }
     }
 
+    boolean isItemInMemory(Params itemParams) {
+        return (loadItemFromMemory(itemParams) != null);
+    }
+
     void cancelObsoleteRequests(long timestamp) {
         for (Iterator<ItemRequest<Params, Result>> i = mItemRequests.values().iterator(); i.hasNext();) {
             ItemRequest<Params, Result> request = i.next();
@@ -360,14 +364,6 @@ public abstract class ItemLoader<Params, Result> {
     }
 
     public void resetItem(View itemView) {
-    }
-
-    public boolean isItemInMemory(Params itemParams) {
-        if (mMemCache != null) {
-            return (mMemCache.get(itemParams) != null);
-        }
-
-        return false;
     }
 
     public int getItemSizeInMemory(Params itemParams, Result result) {

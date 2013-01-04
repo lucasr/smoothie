@@ -20,11 +20,6 @@ public class PatternsListLoader extends ItemLoader<String, CacheableBitmapWrappe
     }
 
     @Override
-    public boolean isItemInMemory(String url) {
-        return (mCache.getFromMemoryCache(url) != null);
-    }
-
-    @Override
     public CacheableBitmapWrapper loadItemFromMemory(String url) {
         return mCache.getFromMemoryCache(url);
     }
