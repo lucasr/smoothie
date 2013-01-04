@@ -25,13 +25,6 @@ public class PatternsListLoader extends ItemLoader<String, CacheableBitmapWrappe
     }
 
     @Override
-    public void resetItem(View itemView) {
-        ViewHolder holder = (ViewHolder) itemView.getTag();
-        holder.image.setImageDrawable(null);
-        holder.title.setText("Loading");
-    }
-
-    @Override
     public String getItemParams(Adapter adapter, int position) {
         return (String) adapter.getItem(position);
     }

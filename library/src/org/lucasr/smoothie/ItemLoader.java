@@ -32,8 +32,7 @@ import android.widget.Adapter;
  * three methods: {@link #loadItem(Object)}, {@link #displayItem(View, Object, boolean)},
  * and {@link #getItemParams(Adapter, int)}. You can override more methods if you want
  * to have custom item loading from memory ({@link #loadItemFromMemory(Object)},
- * {@link #getItemSizeInMemory(Object, Object)}), resetting item views
- * ({@link #resetItem(View)}), etc.</p>
+ * {@link #getItemSizeInMemory(Object, Object)}) and more.</p>
  *
  * <p>Here is an example of subclassing:</p>
  * <pre>
@@ -230,17 +229,10 @@ public abstract class ItemLoader<Params, Result> {
         ItemState<Params> itemState = getItemState(itemView);
         itemState.itemParams = itemParams;
 
-        // If item is not in memory, reset the item view into
-        // loading state.
-        boolean itemInMemory = isItemInMemory(itemParams);
-        if (!itemInMemory) {
-            resetItem(itemView);
-        }
-
         // Mark the view for loading
         itemState.shouldLoadItem = true;
 
-        if (shouldDisplayItem || itemInMemory) {
+        if (shouldDisplayItem || isItemInMemory(itemParams)) {
             performDisplayItem(itemView, SystemClock.uptimeMillis());
         }
     }
@@ -361,9 +353,6 @@ public abstract class ItemLoader<Params, Result> {
         }
 
         return false;
-    }
-
-    public void resetItem(View itemView) {
     }
 
     public int getItemSizeInMemory(Params itemParams, Result result) {

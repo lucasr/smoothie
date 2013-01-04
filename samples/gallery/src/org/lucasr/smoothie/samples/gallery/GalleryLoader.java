@@ -34,12 +34,6 @@ public class GalleryLoader extends ItemLoader<Long, Bitmap> {
     }
 
     @Override
-    public void resetItem(View itemView) {
-        ViewHolder holder = (ViewHolder) itemView.getTag();
-        holder.image.setImageDrawable(null);
-    }
-
-    @Override
     public Long getItemParams(Adapter adapter, int position) {
         Cursor c = (Cursor) adapter.getItem(position);
         return c.getLong(c.getColumnIndex(ImageColumns._ID));

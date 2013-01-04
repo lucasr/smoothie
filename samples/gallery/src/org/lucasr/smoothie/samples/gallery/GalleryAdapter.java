@@ -33,6 +33,7 @@ public class GalleryAdapter extends SimpleCursorAdapter {
 		}
 
 		holder.title.setText(c.getString(c.getColumnIndex(ImageColumns.DATE_TAKEN)));
+        holder.image.setImageDrawable(null);
 
 		return convertView;
 	}

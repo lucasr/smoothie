@@ -54,6 +54,9 @@ public class PatternsListAdapter extends BaseAdapter {
 		    holder = (ViewHolder) convertView.getTag();
 		}
 
+        holder.image.setImageDrawable(null);
+        holder.title.setText("Loading");
+
 		return convertView;
 	}
 
