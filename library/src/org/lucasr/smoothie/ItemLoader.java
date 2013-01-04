@@ -367,10 +367,6 @@ public abstract class ItemLoader<Params, Result> {
         return null;
     }
 
-    public Result preloadItem(Params itemParams) {
-        return loadItem(itemParams);
-    }
-
     public abstract Params getItemParams(Adapter adapter, int position);
 
     public abstract Result loadItem(Params itemParams);
@@ -478,18 +474,18 @@ public abstract class ItemLoader<Params, Result> {
                 return;
             }
 
+            Result result = mItemLoader.loadItem(mRequest.itemParams);
+            mRequest.result = new SoftReference<Result>(result);
+
+            if (result != null && mItemLoader.mMemCache != null) {
+                mItemLoader.mMemCache.put(mRequest.itemParams, result);
+            }
+
             // If itemView is not null, this is a requests for an item
             // that is currently visible on screen.
             if (mRequest.itemView != null) {
-                Result result = mItemLoader.loadItem(mRequest.itemParams);
-                mRequest.result = new SoftReference<Result>(result);
-
                 if (ENABLE_LOGGING) {
                     Log.d(LOGTAG, "Done loading image: " + mRequest.itemParams);
-                }
-
-                if (result != null && mItemLoader.mMemCache != null) {
-                    mItemLoader.mMemCache.put(mRequest.itemParams, result);
                 }
 
                 if (mItemLoader.itemViewReused(mRequest)) {
@@ -499,14 +495,7 @@ public abstract class ItemLoader<Params, Result> {
                 // Item is now loaded, run the display routine
                 mItemLoader.mHandler.post(new DisplayItemRunnable<Params, Result>(mItemLoader, mRequest, false));
             } else {
-                // This is just a preload requests, we're done here
-                Result result = mItemLoader.preloadItem(mRequest.itemParams);
-                mRequest.result = new SoftReference<Result>(result);
-
-                if (result != null && mItemLoader.mMemCache != null) {
-                    mItemLoader.mMemCache.put(mRequest.itemParams, result);
-                }
-
+                // This is just a preload request, we're done here
                 if (ENABLE_LOGGING) {
                     Log.d(LOGTAG, "Done preloading: " + mRequest.itemParams);
                 }
