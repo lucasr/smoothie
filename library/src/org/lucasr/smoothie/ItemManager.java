@@ -13,12 +13,12 @@ import android.widget.AdapterView;
 import android.widget.AdapterView.OnItemSelectedListener;
 
 /**
- * <p>ItemManager is responsible for tying the user interaction
- * (scroll, touch, item selection, etc) on the target
- * {@link AsyncAbsListView} with its associated {@link ItemLoader}.
- * Once an ItemManager is set on an {@link AsyncAbsListView},
- * the {@link ItemLoader} hooks will be called as needed to
- * asynchronously load and display items.</p>
+ * <p>ItemManager ties the user interaction (scroll, touch,
+ * item selection, etc) on the target {@link AsyncAbsListView}
+ * with its associated {@link ItemLoader}. Once an ItemManager
+ * is set on an {@link AsyncAbsListView}, the {@link ItemLoader}
+ * hooks will be called as needed to asynchronously load and
+ * display items.</p>
  *
  * <p>ItemManager instances should be created using its
  * {@link ItemManager.Builder Builder} class. An example call:</p>
