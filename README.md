@@ -1,6 +1,6 @@
-NOTE: Smoothie is currently just a draft API. Although the library is fairly
-funcional, this is still alpha-quality code. Do not rely on it for production
-code. Feedback is very welcome!
+NOTE: Smoothie's API is not final yet. Although the library is fairly
+funcional, this is still beta-quality code. Do not rely on it for production
+code just yet. Feedback is very welcome!
 
 What is it?
 ===========
