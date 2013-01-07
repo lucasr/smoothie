@@ -5,7 +5,7 @@ code just yet. Feedback is very welcome!
 What is it?
 ===========
 
-Easy async loading for Android's ListView/GridView.
+Smoothie provides a simple API to load ListView/GridView items asynchronously, off the UI thread.
 
 Features
 ========
