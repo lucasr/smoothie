@@ -16,6 +16,7 @@
 
 package org.lucasr.smoothie;
 
+import android.annotation.TargetApi;
 import android.os.Build;
 import android.view.View.OnTouchListener;
 import android.widget.AbsListView;
@@ -146,6 +147,7 @@ class ItemManaged {
         return adapter;
     }
 
+    @TargetApi(11)
     void setAdapterOnView(ListAdapter adapter) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
             mAbsListView.setAdapter(adapter);
