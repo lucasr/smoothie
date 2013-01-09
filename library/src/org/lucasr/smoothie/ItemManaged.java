@@ -16,12 +16,15 @@
 
 package org.lucasr.smoothie;
 
+import android.os.Build;
 import android.view.View.OnTouchListener;
 import android.widget.AbsListView;
 import android.widget.AbsListView.OnScrollListener;
 import android.widget.AdapterView.OnItemSelectedListener;
 import android.widget.BaseAdapter;
+import android.widget.GridView;
 import android.widget.ListAdapter;
+import android.widget.ListView;
 
 class ItemManaged {
     private final AbsListView mAbsListView;
@@ -69,7 +72,7 @@ class ItemManaged {
 
             // Make sure that we wrap whatever adapter has been set
             // before the item manager was installed.
-            mAbsListView.setAdapter(wrapAdapter(itemManager, mWrappedAdapter));
+            setAdapterOnView(wrapAdapter(itemManager, mWrappedAdapter));
         } else {
             // Restore the listeners set on the view before the item
             // manager was installed.
@@ -78,7 +81,7 @@ class ItemManaged {
             mAbsListView.setOnItemSelectedListener(mOnItemSelectedListener);
 
             // Remove wrapper adapter and re-apply the original one
-            mAbsListView.setAdapter(mWrappedAdapter);
+            setAdapterOnView(mWrappedAdapter);
         }
 
         mItemManager = itemManager;
@@ -141,5 +144,14 @@ class ItemManaged {
         }
 
         return adapter;
+    }
+
+    void setAdapterOnView(ListAdapter adapter) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB)
+            mAbsListView.setAdapter(adapter);
+        else if (mAbsListView instanceof ListView)
+            ((ListView) mAbsListView).setAdapter(adapter);
+        else if (mAbsListView instanceof GridView)
+            ((GridView) mAbsListView).setAdapter(adapter);
     }
 }
