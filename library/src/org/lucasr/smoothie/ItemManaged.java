@@ -147,11 +147,12 @@ class ItemManaged {
     }
 
     void setAdapterOnView(ListAdapter adapter) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
             mAbsListView.setAdapter(adapter);
-        else if (mAbsListView instanceof ListView)
+        } else if (mAbsListView instanceof ListView) {
             ((ListView) mAbsListView).setAdapter(adapter);
-        else if (mAbsListView instanceof GridView)
+        } else if (mAbsListView instanceof GridView) {
             ((GridView) mAbsListView).setAdapter(adapter);
+        }
     }
 }
