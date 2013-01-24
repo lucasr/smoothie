@@ -20,7 +20,7 @@ import org.lucasr.smoothie.ItemLoader;
 import org.lucasr.smoothie.samples.bitmapcache.PatternsListAdapter.ViewHolder;
 
 import uk.co.senab.bitmapcache.BitmapLruCache;
-import uk.co.senab.bitmapcache.CacheableBitmapWrapper;
+import uk.co.senab.bitmapcache.CacheableBitmapDrawable;
 import android.graphics.Shader.TileMode;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
@@ -28,7 +28,7 @@ import android.graphics.drawable.TransitionDrawable;
 import android.view.View;
 import android.widget.Adapter;
 
-public class PatternsListLoader extends ItemLoader<String, CacheableBitmapWrapper> {
+public class PatternsListLoader extends ItemLoader<String, CacheableBitmapDrawable> {
     final BitmapLruCache mCache;
 
     public PatternsListLoader(BitmapLruCache cache) {
@@ -36,7 +36,7 @@ public class PatternsListLoader extends ItemLoader<String, CacheableBitmapWrappe
     }
 
     @Override
-    public CacheableBitmapWrapper loadItemFromMemory(String url) {
+    public CacheableBitmapDrawable loadItemFromMemory(String url) {
         return mCache.getFromMemoryCache(url);
     }
 
@@ -46,8 +46,8 @@ public class PatternsListLoader extends ItemLoader<String, CacheableBitmapWrappe
     }
 
     @Override
-    public CacheableBitmapWrapper loadItem(String url) {
-        CacheableBitmapWrapper wrapper = mCache.get(url);
+    public CacheableBitmapDrawable loadItem(String url) {
+    	CacheableBitmapDrawable wrapper = mCache.get(url);
         if (wrapper == null) {
             wrapper = mCache.put(url, HttpHelper.loadImage(url));
         }
@@ -56,24 +56,23 @@ public class PatternsListLoader extends ItemLoader<String, CacheableBitmapWrappe
     }
 
     @Override
-    public void displayItem(View itemView, CacheableBitmapWrapper result, boolean fromMemory) {
+    public void displayItem(View itemView, CacheableBitmapDrawable result, boolean fromMemory) {
         ViewHolder holder = (ViewHolder) itemView.getTag();
 
         if (result == null) {
             holder.title.setText("Failed");
             return;
         }
-
-        BitmapDrawable patternDrawable = new BitmapDrawable(itemView.getResources(), result.getBitmap());
-        patternDrawable.setTileModeXY(TileMode.REPEAT, TileMode.REPEAT);
+    
+        result.setTileModeXY(TileMode.REPEAT, TileMode.REPEAT);
 
         if (fromMemory) {
-            holder.image.setImageDrawable(patternDrawable);
+            holder.image.setImageDrawable(result);
         } else {
             BitmapDrawable emptyDrawable = new BitmapDrawable(itemView.getResources());
 
             TransitionDrawable fadeInDrawable =
-                    new TransitionDrawable(new Drawable[] { emptyDrawable, patternDrawable });
+                    new TransitionDrawable(new Drawable[] { emptyDrawable, result });
 
             holder.image.setImageDrawable(fadeInDrawable);
             fadeInDrawable.startTransition(200);
