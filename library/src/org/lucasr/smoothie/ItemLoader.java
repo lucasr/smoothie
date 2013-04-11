@@ -192,7 +192,7 @@ public abstract class ItemLoader<Params, Result> {
         Params itemParams = itemState.itemParams;
         if (itemParams == null) {
             if (ENABLE_LOGGING) {
-                Log.d(LOGTAG, "No item params, bailing: " + itemParams);
+                Log.d(LOGTAG, "No item params, bailing");
             }
 
             return;
