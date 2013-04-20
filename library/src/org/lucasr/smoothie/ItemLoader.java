@@ -35,17 +35,23 @@ import android.os.SystemClock;
 import android.util.Log;
 import android.view.View;
 import android.widget.Adapter;
+import android.widget.AdapterView;
 
 /**
- * ItemLoader is responsible for loading and displaying items
+ * {@code ItemLoader} is responsible for loading and displaying items
  * in {@link AsyncListView} or {@link AsyncGridView}. This is the class
  * you should subclass to implement your app-specific item loading
  * and displaying logic.
  *
+ * <p>You should use {@link SimpleItemLoader} if your
+ * {@link AsyncListView} or {@link AsyncGridView} only needs one
+ * asynchronous loading operation per item as it hides the unnecessary
+ * multi-part elements of the API.</p>
+ *
  * <h2>Usage</h2>
  * <p>ItemLoader must be subclassed to be used. The subclass will override four
- * methods: {@link #loadItem(Object)}, @{@link #loadItemFromMemory(Object)},
- * {@link #displayItem(View, Object, boolean)}, and
+ * methods: {@link #loadItem(Object, int)}, @{@link #loadItemFromMemory(Object, int)},
+ * {@link #displayItem(View, Object, int, boolean)}, and
  * {@link #getItemParams(Adapter, int)}.</p>
  *
  * <p>Here is an example of subclassing:</p>
@@ -72,7 +78,7 @@ import android.widget.Adapter;
  *     }
  *
  *     @Override
- *     public Bitmap loadItem(Long id) {
+ *     public Bitmap loadItem(Long id, int itemPart) {
  *         Uri uri = Uri.withAppendedPath(Images.Media.EXTERNAL_CONTENT_URI, String.valueOf(id));
  *         Bitmap b = MediaStore.Images.Media.getBitmap(mContext.getContentResolver(), uri);
  *         if (b != null) {
@@ -83,12 +89,12 @@ import android.widget.Adapter;
  *     }
  *
  *     @Override
- *     public Bitmap loadItemFromMemory(Long id) {
+ *     public Bitmap loadItemFromMemory(Long id, int itemPart) {
  *         return mMemCache.get(id);
  *     }
  *
  *     @Override
- *     public void displayItem(View itemView, Bitmap result, boolean fromMemory) {
+ *     public void displayItem(View itemView, Bitmap result, int itemPart, boolean fromMemory) {
  *         ImageView image = (ImageView) itemView.findViewById(R.id.image);
  *         image.setImageBitmap(result);
  *     }
@@ -103,9 +109,9 @@ import android.widget.Adapter;
  * <h2>ItemLoader's generic types</h2>
  * <p>The two types used by an ItemLoader are the following:</p>
  * <ol>
- *     <li><code>Params</code>, the type of the parameters sent to {@link #loadItem(Object)}.</li>
- *     <li><code>Result</code>, the type of the result returned by {@link #loadItem(Object)}
- *     which will be sent to {@link #displayItem(View, Object, boolean)}.</li>
+ *     <li><code>Params</code>, the type of the parameters sent to {@link #loadItem(Object, int)}.</li>
+ *     <li><code>Result</code>, the type of the result returned by {@link #loadItem(Object, int)}
+ *     which will be sent to {@link #displayItem(View, Object, int, boolean)}.</li>
  * </ol>
  *
  * <h2>The 4 steps</h2>
@@ -115,15 +121,64 @@ import android.widget.Adapter;
  *     item is loaded. This step should return all the parameters necessary for
  *     loading the item. This is necessary to avoid touching the Adapter in a
  *     background thread.</li>
- *     <li>{@link #loadItemFromMemory(Object)}, invoked on the UI thread before actually
- *     loading the item. If the item is already in memory, skip the next step and
- *     display the item immediately in the last step.</li>
- *     <li>{@link #loadItem(Object)}, invoked on a background thread. This call
+ *     <li>{@link #loadItemFromMemory(Object, int)}, invoked on the UI thread before actually
+ *     loading the item. If the item part is already in memory, skip the next step and
+ *     display the item part immediately in the last step.</li>
+ *     <li>{@link #loadItem(Object, int)}, invoked on a background thread. This call
  *     should return the item data that needs to be loaded asynchronously such
  *     as images or other online data.</li>
- *     <li>{@link #displayItem(View, Object, boolean)}, invoked on the UI thread
- *     after the item finishes loading.</li>
+ *     <li>{@link #displayItem(View, Object, int, boolean)}, invoked on the UI thread
+ *     after the item part finishes loading.</li>
  * </ol>
+ *
+ * <h2>Multi-part items</h2>
+ * <p>There are cases where the items of your {@link AsyncListView} or
+ * {@link AsyncGridView} are composed by more than one part requiring multiple
+ * asynchronous requests per item e.g. items composed by two images that have
+ * to be downloaded from the cloud. These parts usually have different priorities
+ * in the UI e.g. the main image have higher priority than the author's avatar
+ * image in a list of photos.</p>
+ *
+ * <p>By default, {@link ItemLoader} handles single-part items but you can
+ * make it handle multi-part items by overriding
+ * {@link #getItemPartCount(Adapter, int, int)} and returning the number of parts
+ * a given position in the Adapter has. Then you should handle the {@code itemPart}
+ * argument in {@link #loadItemFromMemory(Object, int)},
+ * {@link #loadItem(Object, int)}, and {@link #displayItem(View, Object, int, boolean)}
+ * accordingly. These methods will be called once for each item part. The item parts
+ * will have indexes starting from zero. e.g. for items with 2 parts, the part indexes
+ * will be 0 and 1.</p>
+ *
+ * <p>Here is an example of {@link #loadItem(Object, int)} handling multi-part items:</p>
+ * <pre>
+ * private static final int PART_MAIN_IMAGE = 0;
+ * private static final int PART_AVATAR = 1;
+ *
+ * private static class MyParams {
+ *     public String imageUrl;
+ *     public String avatarUrl;
+ * }
+ *
+ * public Bitmap loadItem(MyParams params, int itemPart) {
+ *     final String url;
+ *     if (itemPart == PART_MAIN_IMAGE) {
+ *          url = params.imageUrl;
+ *     } else if (itemPart == PART_AVATAR) {
+ *          url = params.avatarUrl;
+ *     }
+ *
+ *     return loadBitmapFromUrl(url);
+ * }
+ * </pre>
+ *
+ * <p>In the example above, the item contains two parts with the same type ({@code Bitmap}).
+ * If your item contains parts with different types, your {@link ItemLoader}'s {@code Result}
+ * type will have to be compatible with both. e.g. you could use {@code Object} as your
+ * {@code Result} type if that's the only way to achieve this.</p>
+ *
+ * <p>You can disable preloading on specific item parts by overriding
+ * {@link #shouldPreloadItemPart(Adapter, int, int)}. Preloading is enabled for
+ * all item parts by default.
  *
  * <h2>ItemLoader and Adapter</h2>
  * <p>Once you have an {@link ItemManager} set in an {@link AsyncListView} or
@@ -146,7 +201,7 @@ import android.widget.Adapter;
  * loaded.</p>
  *
  * <h2>Other implementation notes</h2>
- * <p>It's assumed that your implementation of {@link #loadItem(Object)}
+ * <p>It's assumed that your implementation of {@link #loadItem(Object, int)}
  * will result in the item data being cached in memory on success. Which
  * means that a subsequent {@link #loadItemFromMemory(Object)} call will
  * return the previously loaded item. You can easily implement memory
@@ -163,24 +218,25 @@ public abstract class ItemLoader<Params, Result> {
 
     private Handler mHandler;
     private Map<View, ItemState<Params>> mItemStates;
-    private Map<Params, ItemRequest<Params, Result>> mItemRequests;
+    private Map<String, ItemRequest<Params, Result>> mItemRequests;
     private ThreadPoolExecutor mExecutorService;
 
     static final class ItemState<Params> {
         public boolean shouldLoadItem;
         public Params itemParams;
+        public int position;
     }
 
     void init(Handler handler, int threadPoolSize) {
         mHandler = handler;
         mItemStates = Collections.synchronizedMap(new WeakHashMap<View, ItemState<Params>>());
-        mItemRequests = new ConcurrentHashMap<Params, ItemRequest<Params, Result>>(8, 0.9f, 1);
+        mItemRequests = new ConcurrentHashMap<String, ItemRequest<Params, Result>>(8, 0.9f, 1);
         mExecutorService = new ItemsThreadPoolExecutor<Params, Result>(threadPoolSize, threadPoolSize, 60,
                 TimeUnit.SECONDS, new PriorityBlockingQueue<Runnable>());
     }
 
-    void performDisplayItem(View itemView, long timestamp) {
-        ItemState<Params> itemState = getItemState(itemView);
+    void performDisplayItem(Adapter adapter, View itemView, long timestamp) {
+        final ItemState<Params> itemState = getItemState(itemView);
         if (!itemState.shouldLoadItem) {
             if (ENABLE_LOGGING) {
                 Log.d(LOGTAG, "Item should not load, bailing: " + itemState.itemParams);
@@ -189,7 +245,7 @@ public abstract class ItemLoader<Params, Result> {
             return;
         }
 
-        Params itemParams = itemState.itemParams;
+        final Params itemParams = itemState.itemParams;
         if (itemParams == null) {
             if (ENABLE_LOGGING) {
                 Log.d(LOGTAG, "No item params, bailing");
@@ -198,15 +254,35 @@ public abstract class ItemLoader<Params, Result> {
             return;
         }
 
-        ItemRequest<Params, Result> request = mItemRequests.get(itemParams);
+        final int position = itemState.position;
+        if (position == AdapterView.INVALID_POSITION) {
+            if (ENABLE_LOGGING) {
+                Log.d(LOGTAG, "Undefined position, bailing");
+            }
+
+            return;
+        }
+
+        final int partCount = getItemPartCount(adapter, position);
+        for (int itemPart = 0; itemPart < partCount; itemPart++) {
+            performDisplayOneItem(itemView, itemState, itemPart, timestamp);
+        }
+    }
+
+    private void performDisplayOneItem(View itemView, ItemState<Params> itemState, int itemPart, long timestamp) {
+        final int position = itemState.position;
+        final Params itemParams = itemState.itemParams;
+
+        final String id = generateItemRequestId(position, itemPart);
+        ItemRequest<Params, Result> request = mItemRequests.get(id);
         if (request == null) {
             if (ENABLE_LOGGING) {
                 Log.d(LOGTAG, "(Display) No pending item request, creating new: " + itemParams);
             }
 
             // No existing item request, create a new one
-            request = new ItemRequest<Params, Result>(itemView, itemParams, timestamp);
-            mItemRequests.put(itemParams, request);
+            request = new ItemRequest<Params, Result>(id, itemView, itemParams, position, itemPart, timestamp);
+            mItemRequests.put(id, request);
         } else {
             if (ENABLE_LOGGING) {
                 Log.d(LOGTAG, "(Display) There's a pending item request, reusing: " + itemParams);
@@ -223,13 +299,13 @@ public abstract class ItemLoader<Params, Result> {
         // this item is not requested again.
         itemState.shouldLoadItem = false;
 
-        Result result = loadItemFromMemory(itemParams);
+        Result result = loadItemFromMemory(itemParams, itemPart);
         if (result != null) {
             if (ENABLE_LOGGING) {
                 Log.d(LOGTAG, "Item is preloaded, quickly displaying");
             }
 
-            cancelItemRequest(itemParams);
+            cancelItemRequest(position, itemPart);
 
             // The item is in memory, no need to asynchronously load it
             // Run the final item display routine straight away.
@@ -244,53 +320,70 @@ public abstract class ItemLoader<Params, Result> {
 
     void performLoadItem(View itemView, Adapter adapter, int position, boolean shouldDisplayItem) {
         // Loader returned no parameters for the item, just bail
-        Params itemParams = getItemParams(adapter, position);
+        final Params itemParams = getItemParams(adapter, position);
         if (itemParams == null) {
             return;
         }
 
-        ItemState<Params> itemState = getItemState(itemView);
+        final ItemState<Params> itemState = getItemState(itemView);
         itemState.itemParams = itemParams;
+        itemState.position = position;
 
         // Mark the view for loading
         itemState.shouldLoadItem = true;
 
-        if (shouldDisplayItem || isItemInMemory(itemParams)) {
-            performDisplayItem(itemView, SystemClock.uptimeMillis());
+        final int partCount = getItemPartCount(adapter, position);
+        for (int itemPart = 0; itemPart < partCount; itemPart++) {
+            if (shouldDisplayItem || isItemInMemory(itemParams, itemPart)) {
+                performDisplayOneItem(itemView, itemState, itemPart, SystemClock.uptimeMillis());
+            }
         }
     }
 
     void performPreloadItem(Adapter adapter, int position, long timestamp) {
-        Params itemParams = getItemParams(adapter, position);
+        final Params itemParams = getItemParams(adapter, position);
         if (itemParams == null) {
             return;
         }
 
+        final int partCount = getItemPartCount(adapter, position);
+        for (int itemPart = 0; itemPart < partCount; itemPart++) {
+            if (!shouldPreloadItemPart(adapter, position, itemPart)) {
+                continue;
+            }
+
+            performPreloadOneItem(itemParams, adapter, position, itemPart, SystemClock.uptimeMillis());
+        }
+    }
+
+    private void performPreloadOneItem(Params itemParams, Adapter adapter, int position,
+            int itemPart, long timestamp) {
         // If item is memory, just cancel any pending requests for
         // this item and return as the item has already been loaded.
-        if (isItemInMemory(itemParams)) {
+        if (isItemInMemory(itemParams, itemPart)) {
             if (ENABLE_LOGGING) {
                 Log.d(LOGTAG, "Item is in memory, bailing: " + itemParams);
             }
 
-            cancelItemRequest(itemParams);
+            cancelItemRequest(position, itemPart);
             return;
         }
 
-        ItemRequest<Params, Result> request = mItemRequests.get(itemParams);
+        final String id = generateItemRequestId(position, itemPart);
+        ItemRequest<Params, Result> request = mItemRequests.get(id);
         if (request == null) {
             if (ENABLE_LOGGING) {
-                Log.d(LOGTAG, "(Preload) No pending item request, creating new: " + itemParams);
+                Log.d(LOGTAG, "(Preload) No pending item request, creating new: " + id);
             }
 
             // No pending item preload request, create a new one
-            request = new ItemRequest<Params, Result>(itemParams, timestamp);
-            mItemRequests.put(itemParams, request);
+            request = new ItemRequest<Params, Result>(id, itemParams, position, itemPart, timestamp);
+            mItemRequests.put(id, request);
 
             request.loadItemTask = mExecutorService.submit(new LoadItemRunnable<Params, Result>(this, request));
         } else {
             if (ENABLE_LOGGING) {
-                Log.d(LOGTAG, "(Preload) There's a pending item request, reusing: " + itemParams);
+                Log.d(LOGTAG, "(Preload) There's a pending item request, reusing: " + id);
             }
 
             // There's a pending item request for these parameters, demote the
@@ -301,13 +394,13 @@ public abstract class ItemLoader<Params, Result> {
         }
     }
 
-    boolean isItemInMemory(Params itemParams) {
-        return (loadItemFromMemory(itemParams) != null);
+    boolean isItemInMemory(Params itemParams, int itemPart) {
+        return (loadItemFromMemory(itemParams, itemPart) != null);
     }
 
     void cancelObsoleteRequests(long timestamp) {
         for (Iterator<ItemRequest<Params, Result>> i = mItemRequests.values().iterator(); i.hasNext();) {
-            ItemRequest<Params, Result> request = i.next();
+            final ItemRequest<Params, Result> request = i.next();
 
             if (request.timestamp < timestamp) {
                 if (ENABLE_LOGGING) {
@@ -333,6 +426,7 @@ public abstract class ItemLoader<Params, Result> {
             itemState = new ItemState<Params>();
             itemState.itemParams = null;
             itemState.shouldLoadItem = false;
+            itemState.position = AdapterView.INVALID_POSITION;
 
             mItemStates.put(itemView, itemState);
         }
@@ -340,13 +434,18 @@ public abstract class ItemLoader<Params, Result> {
         return itemState;
     }
 
-    private void cancelItemRequest(Params itemParams) {
-        ItemRequest<Params, Result> request = mItemRequests.get(itemParams);
+    private static String generateItemRequestId(int position, int itemPart) {
+        return String.valueOf(position) + String.valueOf(itemPart);
+    }
+
+    private void cancelItemRequest(int position, int itemPart) {
+        final String id = generateItemRequestId(position, itemPart);
+        final ItemRequest<Params, Result> request = mItemRequests.get(id);
         if (request == null) {
             return;
         }
 
-        mItemRequests.remove(itemParams);
+        mItemRequests.remove(id);
         if (request.loadItemTask != null) {
             request.loadItemTask.cancel(true);
         }
@@ -362,7 +461,7 @@ public abstract class ItemLoader<Params, Result> {
 
         // If the request's soft reference to the view is now null, this means
         // the view has been disposed from memory. Just bail.
-        View itemView = request.itemView.get();
+        final View itemView = request.itemView.get();
         if (itemView == null) {
             return true;
         }
@@ -370,12 +469,47 @@ public abstract class ItemLoader<Params, Result> {
         // If the parameters associated with the view doesn't match the ones
         // in the matching request, this means the view has been recycled to
         // display something else.
-        final Params itemParams = getItemState(itemView).itemParams;
-        if (itemParams == null || !request.itemParams.equals(itemParams)) {
+        final int position = getItemState(itemView).position;
+        if (position == AdapterView.INVALID_POSITION || request.position != position) {
             return true;
         }
 
         return false;
+    }
+
+    /**
+     * Override this method if your {@link ItemLoader} has to deal with
+     * multi-part items.
+     *
+     * @param adapter - The {@link Adapter} associated with the target
+     *        {@link AsyncListView} or {@link AsyncGridView}.
+     * @param position - The position in the Adapter from which the
+     *        number of parts should be retrieved.
+     *
+     * @return The number of parts the item in the given position contains.
+     */
+    public int getItemPartCount(Adapter adapter, int position) {
+        return 1;
+    }
+
+    /**
+     * Override this method if you want to disable preloading for specific
+     * item parts.
+     *
+     * @param adapter - The {@link Adapter} associated with the target
+     *        {@link AsyncListView} or {@link AsyncGridView}.
+     * @param position - The position in the Adapter from which the
+     *        number of parts should be retrieved.
+     * @param itemPart - The item part for which preloading should be enabled
+     *                   or disabled.
+     *
+     * @return Whether the part of the item in the given position should be
+     *         preloaded or not.
+     *
+     * @see ItemManager.Builder#setPreloadItemsEnabled(boolean)
+     */
+    public boolean shouldPreloadItemPart(Adapter adapter, int position, int itemPart) {
+        return true;
     }
 
     /**
@@ -399,10 +533,11 @@ public abstract class ItemLoader<Params, Result> {
      *
      * @param itemParams - The parameters generated by
      *        {@link #getItemParams(Adapter, int)}.
+     * @param itemPart - The target item part to be loaded.
      *
      * @return The loaded item data.
      */
-    public abstract Result loadItem(Params itemParams);
+    public abstract Result loadItem(Params itemParams, int itemPart);
 
     /**
      * Attempts to load the item data from memory. This method is called
@@ -411,10 +546,11 @@ public abstract class ItemLoader<Params, Result> {
      *
      * @param itemParams - The parameters generated by
      *        {@link #getItemParams(Adapter, int)}
+     * @param itemPart - The target item part to be loaded.
      *
      * @return The cached item data.
      */
-    public abstract Result loadItemFromMemory(Params itemParams);
+    public abstract Result loadItemFromMemory(Params itemParams, int itemPart);
 
     /**
      * Displays the loaded item data in the target view. This method is called
@@ -425,31 +561,37 @@ public abstract class ItemLoader<Params, Result> {
      *        implementation.
      * @param result - The item data loaded from {@link #loadItem(Object)} or
      *        {@link #loadItemFromMemory(Object)}.
+     * @param itemPart - The target item part to be displayed.
      * @param fromMemory - {@code True} if the item data has been loaded from
-     *        {@link #loadItemFromMemory(Object)}. {@code False} if it has been
-     *        loaded from {@link #loadItem(Object)}. This argument is usually used
+     *        {@link #loadItemFromMemory(Object, int)}. {@code False} if it has been
+     *        loaded from {@link #loadItem(Object, int)}. This argument is usually used
      *        to skip animations when displaying preloaded items.
      */
-    public abstract void displayItem(View itemView, Result result, boolean fromMemory);
+    public abstract void displayItem(View itemView, Result result, int itemPart, boolean fromMemory);
 
     private static final class ItemRequest<Params, Result> {
         public SoftReference<View> itemView;
-        public Params itemParams;
         public SoftReference<Result> result;
-        public Long timestamp;
         public Future<?> loadItemTask;
+        public Long timestamp;
 
-        public ItemRequest(Params itemParams, long timestamp) {
-            this.itemView = null;
-            this.itemParams = itemParams;
-            this.result = new SoftReference<Result>(null);
-            this.timestamp = timestamp;
-            this.loadItemTask = null;
+        final public String id;
+        final public Params itemParams;
+        final public int position;
+        final public Integer itemPart;
+
+        public ItemRequest(String id, Params itemParams, int position, int itemPart,
+                long timestamp) {
+            this(id, null, itemParams, position, itemPart, timestamp);
         }
 
-        public ItemRequest(View itemView, Params itemParams, long timestamp) {
-            this.itemView = new SoftReference<View>(itemView);
+        public ItemRequest(String id, View itemView, Params itemParams, int position,
+                int itemPart, long timestamp) {
+            this.id = id;
+            this.itemView = (itemView != null ? new SoftReference<View>(itemView) : null);
             this.itemParams = itemParams;
+            this.position = position;
+            this.itemPart = itemPart;
             this.result = new SoftReference<Result>(null);
             this.timestamp = timestamp;
             this.loadItemTask = null;
@@ -494,13 +636,16 @@ public abstract class ItemLoader<Params, Result> {
             // A null itemView here means that the requests has no target view
             // to display the loaded content, which means it's a preload request.
             // Preloading requests always have lower priority than requests for items
-            // that are visible on screen. Request priorities are dynamically updated
-            // as the user scroll the list view. See performDisplayItem() and
+            // that are visible on screen. Parts with lower indexes have priority
+            // over higher ones. Request priorities are dynamically updated as the
+            // user scroll the list view. See performDisplayItem() and
             // performPreloadItem() for details.
             if (r1.itemView != null && r2.itemView == null) {
                 return -1;
             } else if (r1.itemView == null && r2.itemView != null) {
                 return 1;
+            } else if (!r1.itemPart.equals(r2.itemPart)) {
+                return r1.itemPart.compareTo(r2.itemPart);
             } else {
                 return r1.timestamp.compareTo(r2.timestamp);
             }
@@ -523,20 +668,20 @@ public abstract class ItemLoader<Params, Result> {
         @Override
         public void run() {
             if (ENABLE_LOGGING) {
-                Log.d(LOGTAG, "Running: " + mRequest.itemParams);
+                Log.d(LOGTAG, "Running: " + ItemLoader.generateItemRequestId(mRequest.position, mRequest.itemPart));
             }
 
             Process.setThreadPriority(Process.THREAD_PRIORITY_BACKGROUND);
-            mItemLoader.mItemRequests.remove(mRequest.itemParams);
+            mItemLoader.mItemRequests.remove(mRequest.id);
 
             if (mItemLoader.itemViewReused(mRequest)) {
                 return;
             }
 
-            Result result = mItemLoader.loadItem(mRequest.itemParams);
+            Result result = mItemLoader.loadItem(mRequest.itemParams, mRequest.itemPart);
             mRequest.result = new SoftReference<Result>(result);
 
-            // If itemView is not null, this is a requests for an item
+            // If itemView is not null, this is a request for an item
             // that is currently visible on screen.
             if (mRequest.itemView != null) {
                 if (ENABLE_LOGGING) {
@@ -572,22 +717,14 @@ public abstract class ItemLoader<Params, Result> {
 
         @Override
         public void run() {
-            View itemView = mRequest.itemView.get();
-
             if (mItemLoader.itemViewReused(mRequest)) {
-                if (itemView != null) {
-                    mItemLoader.getItemState(itemView).itemParams = null;
-                }
-
                 return;
             }
 
-            Result result = mRequest.result.get();
+            final Result result = mRequest.result.get();
             if (result != null) {
-                mItemLoader.displayItem(itemView, result, mFromMemory);
-                if (itemView != null) {
-                    mItemLoader.getItemState(itemView).itemParams = null;
-                }
+                final View itemView = mRequest.itemView.get();
+                mItemLoader.displayItem(itemView, result, mRequest.itemPart, mFromMemory);
             }
         }
     }

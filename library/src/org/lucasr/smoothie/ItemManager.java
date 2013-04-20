@@ -85,7 +85,8 @@ public final class ItemManager {
             return;
         }
 
-        AbsListView absListView = mManaged.getAbsListView();
+        final AbsListView absListView = mManaged.getAbsListView();
+        final Adapter adapter = absListView.getAdapter();
         mPendingItemsUpdate = false;
 
         long timestamp = SystemClock.uptimeMillis();
@@ -95,7 +96,7 @@ public final class ItemManager {
         final int count = absListView.getChildCount();
         for (int i = 0; i < count; i++) {
             final View itemView = absListView.getChildAt(i);
-            mItemLoader.performDisplayItem(itemView, timestamp++);
+            mItemLoader.performDisplayItem(adapter, itemView, timestamp++);
         }
 
         if (mPreloadItemsEnabled) {
@@ -103,7 +104,6 @@ public final class ItemManager {
             // request priority. See ItemLoader for details.
             int lastFetchedPosition = absListView.getLastVisiblePosition() + 1;
             if (lastFetchedPosition > 0) {
-                Adapter adapter = absListView.getAdapter();
                 final int adapterCount = adapter.getCount();
 
                 for (int i = lastFetchedPosition;

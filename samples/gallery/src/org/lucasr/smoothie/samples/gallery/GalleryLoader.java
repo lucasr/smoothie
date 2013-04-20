@@ -20,7 +20,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 
-import org.lucasr.smoothie.ItemLoader;
+import org.lucasr.smoothie.SimpleItemLoader;
 import org.lucasr.smoothie.samples.gallery.GalleryAdapter.ViewHolder;
 
 import android.content.Context;
@@ -38,7 +38,7 @@ import android.support.v4.util.LruCache;
 import android.view.View;
 import android.widget.Adapter;
 
-public class GalleryLoader extends ItemLoader<Long, Bitmap> {
+public class GalleryLoader extends SimpleItemLoader<Long, Bitmap> {
     private final Context mContext;
     private final LruCache<Long, Bitmap> mMemCache;
 

@@ -16,7 +16,7 @@
 
 package org.lucasr.smoothie.samples.bitmapcache;
 
-import org.lucasr.smoothie.ItemLoader;
+import org.lucasr.smoothie.SimpleItemLoader;
 import org.lucasr.smoothie.samples.bitmapcache.PatternsListAdapter.ViewHolder;
 
 import uk.co.senab.bitmapcache.BitmapLruCache;
@@ -28,7 +28,7 @@ import android.graphics.drawable.TransitionDrawable;
 import android.view.View;
 import android.widget.Adapter;
 
-public class PatternsListLoader extends ItemLoader<String, CacheableBitmapDrawable> {
+public class PatternsListLoader extends SimpleItemLoader<String, CacheableBitmapDrawable> {
     final BitmapLruCache mCache;
 
     public PatternsListLoader(BitmapLruCache cache) {
