@@ -12,6 +12,8 @@ Features
 
 * Tiny API to implement asynchonous loading of items in Android's
   ListView and GridView.
+* Multi-part item support: split the loading of each item into separate
+  asynchronous operations with different global priorities.
 * Tight integration between user interaction and async loading of items i.e.
   stops loading items on fling, enables loading when panning with finger
   down, etc.
@@ -25,7 +27,7 @@ How do I use it?
 
 2. Add an `AsyncListView` or `AsyncGridView` to your layout.
 
-2. Implement an `ItemLoader`. You're only required to override three methods:
+2. Implement an `SimpleItemLoader`. You're only required to override three methods:
    `getItemParams()`, `loadItem()`, and `displayItem()`. You can override more
    methods if you want to handle loading items from memory, preloading items,
    resetting item views, etc.
@@ -46,6 +48,8 @@ How do I use it?
 The sample app has an example of an ItemEngine powered by
 [Android-BitmapCache](https://github.com/chrisbanes/Android-BitmapCache) that
 fades images in as they finish loading on a ListView.
+
+The API docs contain a more detailed overview of the API.
 
 Want to help?
 =============
