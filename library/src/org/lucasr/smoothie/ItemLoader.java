@@ -50,8 +50,8 @@ import android.widget.AdapterView;
  *
  * <h2>Usage</h2>
  * <p>ItemLoader must be subclassed to be used. The subclass will override four
- * methods: {@link #loadItem(Object, int)}, @{@link #loadItemFromMemory(Object, int)},
- * {@link #displayItem(View, Object, int, boolean)}, and
+ * methods: {@link #loadItemPart(Object, int)}, @{@link #loadItemPartFromMemory(Object, int)},
+ * {@link #displayItemPart(View, Object, int, boolean)}, and
  * {@link #getItemParams(Adapter, int)}.</p>
  *
  * <p>Here is an example of subclassing:</p>
@@ -78,7 +78,7 @@ import android.widget.AdapterView;
  *     }
  *
  *     @Override
- *     public Bitmap loadItem(Long id, int itemPart) {
+ *     public Bitmap loadItemPart(Long id, int itemPart) {
  *         Uri uri = Uri.withAppendedPath(Images.Media.EXTERNAL_CONTENT_URI, String.valueOf(id));
  *         Bitmap b = MediaStore.Images.Media.getBitmap(mContext.getContentResolver(), uri);
  *         if (b != null) {
@@ -89,12 +89,12 @@ import android.widget.AdapterView;
  *     }
  *
  *     @Override
- *     public Bitmap loadItemFromMemory(Long id, int itemPart) {
+ *     public Bitmap loadItemPartFromMemory(Long id, int itemPart) {
  *         return mMemCache.get(id);
  *     }
  *
  *     @Override
- *     public void displayItem(View itemView, Bitmap result, int itemPart, boolean fromMemory) {
+ *     public void displayItemPart(View itemView, Bitmap result, int itemPart, boolean fromMemory) {
  *         ImageView image = (ImageView) itemView.findViewById(R.id.image);
  *         image.setImageBitmap(result);
  *     }
@@ -109,9 +109,9 @@ import android.widget.AdapterView;
  * <h2>ItemLoader's generic types</h2>
  * <p>The two types used by an ItemLoader are the following:</p>
  * <ol>
- *     <li><code>Params</code>, the type of the parameters sent to {@link #loadItem(Object, int)}.</li>
- *     <li><code>Result</code>, the type of the result returned by {@link #loadItem(Object, int)}
- *     which will be sent to {@link #displayItem(View, Object, int, boolean)}.</li>
+ *     <li><code>Params</code>, the type of the parameters sent to {@link #loadItemPart(Object, int)}.</li>
+ *     <li><code>Result</code>, the type of the result returned by {@link #loadItemPart(Object, int)}
+ *     which will be sent to {@link #displayItemPart(View, Object, int, boolean)}.</li>
  * </ol>
  *
  * <h2>The 4 steps</h2>
@@ -121,13 +121,13 @@ import android.widget.AdapterView;
  *     item is loaded. This step should return all the parameters necessary for
  *     loading the item. This is necessary to avoid touching the Adapter in a
  *     background thread.</li>
- *     <li>{@link #loadItemFromMemory(Object, int)}, invoked on the UI thread before actually
+ *     <li>{@link #loadItemPartFromMemory(Object, int)}, invoked on the UI thread before actually
  *     loading the item. If the item part is already in memory, skip the next step and
  *     display the item part immediately in the last step.</li>
- *     <li>{@link #loadItem(Object, int)}, invoked on a background thread. This call
+ *     <li>{@link #loadItemPart(Object, int)}, invoked on a background thread. This call
  *     should return the item data that needs to be loaded asynchronously such
  *     as images or other online data.</li>
- *     <li>{@link #displayItem(View, Object, int, boolean)}, invoked on the UI thread
+ *     <li>{@link #displayItemPart(View, Object, int, boolean)}, invoked on the UI thread
  *     after the item part finishes loading.</li>
  * </ol>
  *
@@ -143,13 +143,13 @@ import android.widget.AdapterView;
  * make it handle multi-part items by overriding
  * {@link #getItemPartCount(Adapter, int, int)} and returning the number of parts
  * a given position in the Adapter has. Then you should handle the {@code itemPart}
- * argument in {@link #loadItemFromMemory(Object, int)},
- * {@link #loadItem(Object, int)}, and {@link #displayItem(View, Object, int, boolean)}
+ * argument in {@link #loadItemPartFromMemory(Object, int)},
+ * {@link #loadItemPart(Object, int)}, and {@link #displayItemPart(View, Object, int, boolean)}
  * accordingly. These methods will be called once for each item part. The item parts
  * will have indexes starting from zero. e.g. for items with 2 parts, the part indexes
  * will be 0 and 1.</p>
  *
- * <p>Here is an example of {@link #loadItem(Object, int)} handling multi-part items:</p>
+ * <p>Here is an example of {@link #loadItemPart(Object, int)} handling multi-part items:</p>
  * <pre>
  * private static final int PART_MAIN_IMAGE = 0;
  * private static final int PART_AVATAR = 1;
@@ -159,7 +159,7 @@ import android.widget.AdapterView;
  *     public String avatarUrl;
  * }
  *
- * public Bitmap loadItem(MyParams params, int itemPart) {
+ * public Bitmap loadItemPart(MyParams params, int itemPart) {
  *     final String url;
  *     if (itemPart == PART_MAIN_IMAGE) {
  *          url = params.imageUrl;
@@ -201,9 +201,9 @@ import android.widget.AdapterView;
  * loaded.</p>
  *
  * <h2>Other implementation notes</h2>
- * <p>It's assumed that your implementation of {@link #loadItem(Object, int)}
+ * <p>It's assumed that your implementation of {@link #loadItemPart(Object, int)}
  * will result in the item data being cached in memory on success. Which
- * means that a subsequent {@link #loadItemFromMemory(Object)} call will
+ * means that a subsequent {@link #loadItemPartFromMemory(Object, int)} call will
  * return the previously loaded item. You can easily implement memory
  * caching using the Android support library's {@code LruCache}</p>
  *
@@ -265,11 +265,11 @@ public abstract class ItemLoader<Params, Result> {
 
         final int partCount = getItemPartCount(adapter, position);
         for (int itemPart = 0; itemPart < partCount; itemPart++) {
-            performDisplayOneItem(itemView, itemState, itemPart, timestamp);
+            performDisplayItemPart(itemView, itemState, itemPart, timestamp);
         }
     }
 
-    private void performDisplayOneItem(View itemView, ItemState<Params> itemState, int itemPart, long timestamp) {
+    private void performDisplayItemPart(View itemView, ItemState<Params> itemState, int itemPart, long timestamp) {
         final int position = itemState.position;
         final Params itemParams = itemState.itemParams;
 
@@ -299,7 +299,7 @@ public abstract class ItemLoader<Params, Result> {
         // this item is not requested again.
         itemState.shouldLoadItem = false;
 
-        Result result = loadItemFromMemory(itemParams, itemPart);
+        Result result = loadItemPartFromMemory(itemParams, itemPart);
         if (result != null) {
             if (ENABLE_LOGGING) {
                 Log.d(LOGTAG, "Item is preloaded, quickly displaying");
@@ -334,8 +334,8 @@ public abstract class ItemLoader<Params, Result> {
 
         final int partCount = getItemPartCount(adapter, position);
         for (int itemPart = 0; itemPart < partCount; itemPart++) {
-            if (shouldDisplayItem || isItemInMemory(itemParams, itemPart)) {
-                performDisplayOneItem(itemView, itemState, itemPart, SystemClock.uptimeMillis());
+            if (shouldDisplayItem || isItemPartInMemory(itemParams, itemPart)) {
+                performDisplayItemPart(itemView, itemState, itemPart, SystemClock.uptimeMillis());
             }
         }
     }
@@ -352,15 +352,15 @@ public abstract class ItemLoader<Params, Result> {
                 continue;
             }
 
-            performPreloadOneItem(itemParams, adapter, position, itemPart, SystemClock.uptimeMillis());
+            performPreloadItemPart(itemParams, adapter, position, itemPart, SystemClock.uptimeMillis());
         }
     }
 
-    private void performPreloadOneItem(Params itemParams, Adapter adapter, int position,
+    private void performPreloadItemPart(Params itemParams, Adapter adapter, int position,
             int itemPart, long timestamp) {
         // If item is memory, just cancel any pending requests for
         // this item and return as the item has already been loaded.
-        if (isItemInMemory(itemParams, itemPart)) {
+        if (isItemPartInMemory(itemParams, itemPart)) {
             if (ENABLE_LOGGING) {
                 Log.d(LOGTAG, "Item is in memory, bailing: " + itemParams);
             }
@@ -394,8 +394,8 @@ public abstract class ItemLoader<Params, Result> {
         }
     }
 
-    boolean isItemInMemory(Params itemParams, int itemPart) {
-        return (loadItemFromMemory(itemParams, itemPart) != null);
+    boolean isItemPartInMemory(Params itemParams, int itemPart) {
+        return (loadItemPartFromMemory(itemParams, itemPart) != null);
     }
 
     void cancelObsoleteRequests(long timestamp) {
@@ -522,7 +522,7 @@ public abstract class ItemLoader<Params, Result> {
      *        parameters should be retrieved.
      *
      * @return The parameters necessary to load an item which will be
-     *         passed to {@link #loadItem(Object)}.
+     *         passed to {@link #loadItemPart(Object, int)}.
      */
     public abstract Params getItemParams(Adapter adapter, int position);
 
@@ -537,7 +537,7 @@ public abstract class ItemLoader<Params, Result> {
      *
      * @return The loaded item data.
      */
-    public abstract Result loadItem(Params itemParams, int itemPart);
+    public abstract Result loadItemPart(Params itemParams, int itemPart);
 
     /**
      * Attempts to load the item data from memory. This method is called
@@ -550,7 +550,7 @@ public abstract class ItemLoader<Params, Result> {
      *
      * @return The cached item data.
      */
-    public abstract Result loadItemFromMemory(Params itemParams, int itemPart);
+    public abstract Result loadItemPartFromMemory(Params itemParams, int itemPart);
 
     /**
      * Displays the loaded item data in the target view. This method is called
@@ -559,15 +559,15 @@ public abstract class ItemLoader<Params, Result> {
      * @param itemView - The target item view returned by your Adapter's
      *        {@link android.widget.Adapter #getView(int, View, android.view.ViewGroup)}
      *        implementation.
-     * @param result - The item data loaded from {@link #loadItem(Object)} or
-     *        {@link #loadItemFromMemory(Object)}.
+     * @param result - The item data loaded from {@link #loadItemPart(Object, int)} or
+     *        {@link #loadItemPartFromMemory(Object)}.
      * @param itemPart - The target item part to be displayed.
      * @param fromMemory - {@code True} if the item data has been loaded from
-     *        {@link #loadItemFromMemory(Object, int)}. {@code False} if it has been
-     *        loaded from {@link #loadItem(Object, int)}. This argument is usually used
+     *        {@link #loadItemPartFromMemory(Object, int)}. {@code False} if it has been
+     *        loaded from {@link #loadItemPart(Object, int)}. This argument is usually used
      *        to skip animations when displaying preloaded items.
      */
-    public abstract void displayItem(View itemView, Result result, int itemPart, boolean fromMemory);
+    public abstract void displayItemPart(View itemView, Result result, int itemPart, boolean fromMemory);
 
     private static final class ItemRequest<Params, Result> {
         public SoftReference<View> itemView;
@@ -678,7 +678,7 @@ public abstract class ItemLoader<Params, Result> {
                 return;
             }
 
-            Result result = mItemLoader.loadItem(mRequest.itemParams, mRequest.itemPart);
+            Result result = mItemLoader.loadItemPart(mRequest.itemParams, mRequest.itemPart);
             mRequest.result = new SoftReference<Result>(result);
 
             // If itemView is not null, this is a request for an item
@@ -724,7 +724,7 @@ public abstract class ItemLoader<Params, Result> {
             final Result result = mRequest.result.get();
             if (result != null) {
                 final View itemView = mRequest.itemView.get();
-                mItemLoader.displayItem(itemView, result, mRequest.itemPart, mFromMemory);
+                mItemLoader.displayItemPart(itemView, result, mRequest.itemPart, mFromMemory);
             }
         }
     }

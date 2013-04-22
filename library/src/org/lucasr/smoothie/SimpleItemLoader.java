@@ -29,7 +29,7 @@ public abstract class SimpleItemLoader<Params, Result> extends ItemLoader<Params
     }
 
     @Override
-    final public Result loadItem(Params itemParams, int itemPart) {
+    final public Result loadItemPart(Params itemParams, int itemPart) {
         return loadItem(itemParams);
     }
 
@@ -46,7 +46,7 @@ public abstract class SimpleItemLoader<Params, Result> extends ItemLoader<Params
     public abstract Result loadItem(Params itemParams);
 
     @Override
-    final public Result loadItemFromMemory(Params itemParams, int itemPart) {
+    final public Result loadItemPartFromMemory(Params itemParams, int itemPart) {
         return loadItemFromMemory(itemParams);
     }
 
@@ -63,7 +63,7 @@ public abstract class SimpleItemLoader<Params, Result> extends ItemLoader<Params
     public abstract Result loadItemFromMemory(Params itemParams);
 
     @Override
-    final public void displayItem(View itemView, Result result, int itemPart,
+    final public void displayItemPart(View itemView, Result result, int itemPart,
             boolean fromMemory) {
         displayItem(itemView, result, fromMemory);
     }
