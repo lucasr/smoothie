@@ -147,7 +147,8 @@ import android.widget.AdapterView;
  * {@link #loadItemPart(Object, int)}, and {@link #displayItemPart(View, Object, int, boolean)}
  * accordingly. These methods will be called once for each item part. The item parts
  * will have indexes starting from zero. e.g. for items with 2 parts, the part indexes
- * will be 0 and 1.</p>
+ * will be 0 and 1. The indexes also define the relative priority between parts. Smoothie
+ * will load the part with index 0 for all visible items before loading part with index 1.</p>
  *
  * <p>Here is an example of {@link #loadItemPart(Object, int)} handling multi-part items:</p>
  * <pre>
