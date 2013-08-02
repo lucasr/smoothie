@@ -1,0 +1,15 @@
+apply plugin: 'android'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    compile project(':library')
+    compile 'com.github.chrisbanes.bitmapcache:library:2.2.2'
+}
+
+android {
+    compileSdkVersion 16
+    buildToolsVersion "18.0.1"
+}
