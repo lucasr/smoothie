@@ -108,7 +108,7 @@ class AsyncBaseAdapter extends BaseAdapter {
     @Override
     public View getView(int position, View convertView, ViewGroup parent) {
         View v = mWrappedAdapter.getView(position, convertView, parent);
-        mItemManager.loadItem(v, position);
+        mItemManager.loadItem(parent, v, position);
         return v;
     }
 }

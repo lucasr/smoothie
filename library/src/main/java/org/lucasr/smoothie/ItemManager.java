@@ -96,7 +96,7 @@ public final class ItemManager {
         final int count = absListView.getChildCount();
         for (int i = 0; i < count; i++) {
             final View itemView = absListView.getChildAt(i);
-            mItemLoader.performDisplayItem(adapter, itemView, timestamp++);
+            mItemLoader.performDisplayItem(absListView, adapter, itemView, timestamp++);
         }
 
         if (mPreloadItemsEnabled) {
@@ -109,7 +109,7 @@ public final class ItemManager {
                 for (int i = lastFetchedPosition;
                      i < lastFetchedPosition + mPreloadItemsCount && i < adapterCount;
                      i++) {
-                    mItemLoader.performPreloadItem(adapter, i, timestamp++);
+                    mItemLoader.performPreloadItem(absListView, adapter, i, timestamp++);
                 }
             }
         }
@@ -147,7 +147,15 @@ public final class ItemManager {
         }
     }
 
-    void loadItem(View itemView, int position) {
+    void cancelAllRequests() {
+        if (mManaged == null) {
+            throw new IllegalStateException("Cannot cancel requests with no managed view");
+        }
+
+        mItemLoader.cancelRequestsForContainer(mManaged.getAbsListView());
+    }
+
+    void loadItem(View itemContainer, View itemView, int position) {
         AbsListView absListView = mManaged.getAbsListView();
         Adapter adapter = absListView.getAdapter();
 
@@ -157,7 +165,7 @@ public final class ItemManager {
         // This runs on each Adapter.getView() call. Will only trigger an
         // actual item loading request if the view is not being flung or finger
         // is down scrolling the view.
-        mItemLoader.performLoadItem(itemView, adapter, position, shouldDisplayItem);
+        mItemLoader.performLoadItem(itemContainer, itemView, adapter, position, shouldDisplayItem);
     }
 
     private class ScrollManager implements AbsListView.OnScrollListener {

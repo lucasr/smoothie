@@ -236,7 +236,7 @@ public abstract class ItemLoader<Params, Result> {
                 TimeUnit.SECONDS, new PriorityBlockingQueue<Runnable>());
     }
 
-    void performDisplayItem(Adapter adapter, View itemView, long timestamp) {
+    void performDisplayItem(View itemContainer, Adapter adapter, View itemView, long timestamp) {
         final ItemState<Params> itemState = getItemState(itemView);
         if (!itemState.shouldLoadItem) {
             if (ENABLE_LOGGING) {
@@ -266,11 +266,12 @@ public abstract class ItemLoader<Params, Result> {
 
         final int partCount = getItemPartCount(adapter, position);
         for (int itemPart = 0; itemPart < partCount; itemPart++) {
-            performDisplayItemPart(itemView, itemState, itemPart, timestamp);
+            performDisplayItemPart(itemContainer, itemView, itemState, itemPart, timestamp);
         }
     }
 
-    private void performDisplayItemPart(View itemView, ItemState<Params> itemState, int itemPart, long timestamp) {
+    private void performDisplayItemPart(View itemContainer, View itemView, ItemState<Params> itemState,
+                                        int itemPart, long timestamp) {
         final int position = itemState.position;
         final Params itemParams = itemState.itemParams;
 
@@ -282,7 +283,7 @@ public abstract class ItemLoader<Params, Result> {
             }
 
             // No existing item request, create a new one
-            request = new ItemRequest<Params, Result>(id, itemView, itemParams, position, itemPart, timestamp);
+            request = new ItemRequest<Params, Result>(id, itemContainer, itemView, itemParams, position, itemPart, timestamp);
             mItemRequests.put(id, request);
         } else {
             if (ENABLE_LOGGING) {
@@ -319,7 +320,7 @@ public abstract class ItemLoader<Params, Result> {
         request.loadItemTask = mExecutorService.submit(new LoadItemRunnable<Params, Result>(this, request));
     }
 
-    void performLoadItem(View itemView, Adapter adapter, int position, boolean shouldDisplayItem) {
+    void performLoadItem(View itemContainer, View itemView, Adapter adapter, int position, boolean shouldDisplayItem) {
         // Loader returned no parameters for the item, just bail
         final Params itemParams = getItemParams(adapter, position);
         if (itemParams == null) {
@@ -336,12 +337,12 @@ public abstract class ItemLoader<Params, Result> {
         final int partCount = getItemPartCount(adapter, position);
         for (int itemPart = 0; itemPart < partCount; itemPart++) {
             if (shouldDisplayItem || isItemPartInMemory(itemParams, itemPart)) {
-                performDisplayItemPart(itemView, itemState, itemPart, SystemClock.uptimeMillis());
+                performDisplayItemPart(itemContainer, itemView, itemState, itemPart, SystemClock.uptimeMillis());
             }
         }
     }
 
-    void performPreloadItem(Adapter adapter, int position, long timestamp) {
+    void performPreloadItem(View itemContainer, Adapter adapter, int position, long timestamp) {
         final Params itemParams = getItemParams(adapter, position);
         if (itemParams == null) {
             return;
@@ -353,11 +354,12 @@ public abstract class ItemLoader<Params, Result> {
                 continue;
             }
 
-            performPreloadItemPart(itemParams, adapter, position, itemPart, SystemClock.uptimeMillis());
+            performPreloadItemPart(itemContainer, itemParams, adapter, position,
+                    itemPart, SystemClock.uptimeMillis());
         }
     }
 
-    private void performPreloadItemPart(Params itemParams, Adapter adapter, int position,
+    private void performPreloadItemPart(View itemContainer, Params itemParams, Adapter adapter, int position,
             int itemPart, long timestamp) {
         // If item is memory, just cancel any pending requests for
         // this item and return as the item has already been loaded.
@@ -378,7 +380,7 @@ public abstract class ItemLoader<Params, Result> {
             }
 
             // No pending item preload request, create a new one
-            request = new ItemRequest<Params, Result>(id, itemParams, position, itemPart, timestamp);
+            request = new ItemRequest<Params, Result>(id, itemContainer, itemParams, position, itemPart, timestamp);
             mItemRequests.put(id, request);
 
             request.loadItemTask = mExecutorService.submit(new LoadItemRunnable<Params, Result>(this, request));
@@ -418,6 +420,29 @@ public abstract class ItemLoader<Params, Result> {
 
         // Actually remove any cancelled tasks from the queue
         mExecutorService.purge();
+    }
+
+    void cancelRequestsForContainer(View itemContainer) {
+        if (itemContainer == null) {
+            throw new IllegalArgumentException("Null itemContainer in cancelRequestsForContainer");
+        }
+
+        for (Iterator<ItemRequest<Params, Result>> i = mItemRequests.values().iterator(); i.hasNext();) {
+            final ItemRequest<Params, Result> request = i.next();
+            final View requestContainer = request.itemContainer.get();
+
+            if (requestContainer == itemContainer) {
+                if (ENABLE_LOGGING) {
+                    Log.d(LOGTAG, "Cancelling request for container: " + request.itemParams);
+                }
+
+                if (request.loadItemTask != null) {
+                    request.loadItemTask.cancel(true);
+                }
+
+                i.remove();
+            }
+        }
     }
 
     private ItemState<Params> getItemState(View itemView) {
@@ -571,6 +596,7 @@ public abstract class ItemLoader<Params, Result> {
     public abstract void displayItemPart(View itemView, Result result, int itemPart, boolean fromMemory);
 
     private static final class ItemRequest<Params, Result> {
+        public SoftReference<View> itemContainer;
         public SoftReference<View> itemView;
         public SoftReference<Result> result;
         public Future<?> loadItemTask;
@@ -581,14 +607,15 @@ public abstract class ItemLoader<Params, Result> {
         final public int position;
         final public Integer itemPart;
 
-        public ItemRequest(String id, Params itemParams, int position, int itemPart,
+        public ItemRequest(String id, View itemContainer, Params itemParams, int position, int itemPart,
                 long timestamp) {
-            this(id, null, itemParams, position, itemPart, timestamp);
+            this(id, itemContainer, null, itemParams, position, itemPart, timestamp);
         }
 
-        public ItemRequest(String id, View itemView, Params itemParams, int position,
+        public ItemRequest(String id, View itemContainer, View itemView, Params itemParams, int position,
                 int itemPart, long timestamp) {
             this.id = id;
+            this.itemContainer = new SoftReference<View>(itemContainer);
             this.itemView = (itemView != null ? new SoftReference<View>(itemView) : null);
             this.itemParams = itemParams;
             this.position = position;

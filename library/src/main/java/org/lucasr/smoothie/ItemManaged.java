@@ -129,6 +129,10 @@ class ItemManaged {
         mOnItemSelectedListener = l;
     }
 
+    void cancelAllRequests() {
+        mItemManager.cancelAllRequests();
+    }
+
     ListAdapter getWrappedAdapter() {
         return mWrappedAdapter;
     }

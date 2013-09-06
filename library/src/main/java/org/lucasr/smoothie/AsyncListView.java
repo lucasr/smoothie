@@ -77,6 +77,12 @@ public class AsyncListView extends ListView implements AsyncAbsListView {
     }
 
     @Override
+    public void onDetachedFromWindow() {
+        super.onDetachedFromWindow();
+        mItemManaged.cancelAllRequests();
+    }
+
+    @Override
     public void setOnScrollListener(OnScrollListener l) {
         mItemManaged.setOnScrollListener(l);
         if (!mItemManaged.hasItemManager()) {
