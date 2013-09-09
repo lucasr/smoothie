@@ -130,7 +130,9 @@ class ItemManaged {
     }
 
     void cancelAllRequests() {
-        mItemManager.cancelAllRequests();
+        if (mItemManager != null) {
+            mItemManager.cancelAllRequests();
+        }
     }
 
     ListAdapter getWrappedAdapter() {
