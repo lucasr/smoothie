@@ -49,8 +49,18 @@ public class AsyncListView extends ListView implements AsyncAbsListView {
     private final ItemManaged mItemManaged;
 
     @SuppressWarnings("javadoc")
+    public AsyncListView(Context context) {
+        this(context, null);
+    }
+
+    @SuppressWarnings("javadoc")
     public AsyncListView(Context context, AttributeSet attrs) {
-        super(context, attrs);
+        this(context, attrs, 0);
+    }
+
+    @SuppressWarnings("javadoc")
+    public AsyncListView(Context context, AttributeSet attrs, int defStyle) {
+        super(context, attrs, defStyle);
         mItemManaged = new ItemManaged(this);
     }
 
