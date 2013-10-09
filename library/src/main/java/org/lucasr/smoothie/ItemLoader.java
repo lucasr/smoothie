@@ -620,7 +620,7 @@ public abstract class ItemLoader<Params, Result> {
             this.itemParams = itemParams;
             this.position = position;
             this.itemPart = itemPart;
-            this.result = new SoftReference<Result>(null);
+            this.result = null;
             this.timestamp = timestamp;
             this.loadItemTask = null;
         }
@@ -749,11 +749,20 @@ public abstract class ItemLoader<Params, Result> {
                 return;
             }
 
-            final Result result = mRequest.result.get();
-            if (result != null) {
-                final View itemView = mRequest.itemView.get();
-                mItemLoader.displayItemPart(itemView, result, mRequest.itemPart, mFromMemory);
+            // We should have set the result to a non-null value at this point
+            if (mRequest.result == null) {
+                throw new IllegalStateException("Result should not be null when displaying an item part");
             }
+
+            // Simply bail if the view has been garbage collected
+            final View itemView = mRequest.itemView.get();
+            if (itemView == null) {
+                return;
+            }
+
+            // Deliver the result to display the item part
+            final Result result = mRequest.result.get();
+            mItemLoader.displayItemPart(itemView, result, mRequest.itemPart, mFromMemory);
         }
     }
 }
