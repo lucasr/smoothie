@@ -89,6 +89,11 @@ public final class ItemManager {
         final Adapter adapter = absListView.getAdapter();
         mPendingItemsUpdate = false;
 
+        // Nothing worth doing if the adapter is null, just bail.
+        if (adapter == null) {
+            return;
+        }
+
         long timestamp = SystemClock.uptimeMillis();
 
         // Perform display routine on each of the visible items
