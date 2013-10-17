@@ -21,11 +21,13 @@ import android.os.Build;
 import android.view.View.OnTouchListener;
 import android.widget.AbsListView;
 import android.widget.AbsListView.OnScrollListener;
+import android.widget.Adapter;
 import android.widget.AdapterView.OnItemSelectedListener;
 import android.widget.BaseAdapter;
 import android.widget.GridView;
 import android.widget.ListAdapter;
 import android.widget.ListView;
+import android.widget.WrapperListAdapter;
 
 class ItemManaged {
     private final AbsListView mAbsListView;
@@ -135,8 +137,14 @@ class ItemManaged {
         }
     }
 
-    ListAdapter getWrappedAdapter() {
-        return mWrappedAdapter;
+    ListAdapter getAdapter() {
+        final ListAdapter adapter = mAbsListView.getAdapter();
+        if (adapter instanceof WrapperListAdapter) {
+            WrapperListAdapter wrapperAdapter = (WrapperListAdapter) adapter;
+            return wrapperAdapter.getWrappedAdapter();
+        }
+
+        return adapter;
     }
 
     ListAdapter wrapAdapter(ListAdapter adapter) {

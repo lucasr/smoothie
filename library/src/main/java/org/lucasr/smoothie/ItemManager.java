@@ -27,6 +27,8 @@ import android.widget.AbsListView.OnScrollListener;
 import android.widget.Adapter;
 import android.widget.AdapterView;
 import android.widget.AdapterView.OnItemSelectedListener;
+import android.widget.ListAdapter;
+import android.widget.WrapperListAdapter;
 
 /**
  * <p>ItemManager ties the user interaction (scroll, touch,
@@ -86,7 +88,7 @@ public final class ItemManager {
         }
 
         final AbsListView absListView = mManaged.getAbsListView();
-        final Adapter adapter = absListView.getAdapter();
+        final ListAdapter adapter = mManaged.getAdapter();
         mPendingItemsUpdate = false;
 
         // Nothing worth doing if the adapter is null, just bail.
@@ -162,7 +164,7 @@ public final class ItemManager {
 
     void loadItem(View itemContainer, View itemView, int position) {
         final AbsListView absListView = mManaged.getAbsListView();
-        final Adapter adapter = absListView.getAdapter();
+        final ListAdapter adapter = mManaged.getAdapter();
 
         final boolean shouldDisplayItem =
                 (mScrollState != OnScrollListener.SCROLL_STATE_FLING && !mPendingItemsUpdate);
