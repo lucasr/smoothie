@@ -107,7 +107,7 @@ public final class ItemManager {
         if (mPreloadItemsEnabled) {
             // Preload items beyond the visible viewport with a lower
             // request priority. See ItemLoader for details.
-            int lastFetchedPosition = absListView.getLastVisiblePosition() + 1;
+            final int lastFetchedPosition = absListView.getLastVisiblePosition() + 1;
             if (lastFetchedPosition > 0) {
                 final int adapterCount = adapter.getCount();
 
@@ -129,8 +129,8 @@ public final class ItemManager {
     }
 
     private void postUpdateItems() {
-        Message msg = mHandler.obtainMessage(MESSAGE_UPDATE_ITEMS,
-                                             ItemManager.this);
+        final Message msg = mHandler.obtainMessage(MESSAGE_UPDATE_ITEMS,
+                                                   ItemManager.this);
 
         mHandler.removeMessages(MESSAGE_UPDATE_ITEMS);
         mPendingItemsUpdate = true;
@@ -142,7 +142,7 @@ public final class ItemManager {
         mManaged = itemManaged;
 
         if (mManaged != null) {
-            AbsListView absListView = mManaged.getAbsListView();
+            final AbsListView absListView = mManaged.getAbsListView();
 
             // These listeners will still run the current list view
             // listeners as delegates. See ItemManaged.
@@ -161,10 +161,10 @@ public final class ItemManager {
     }
 
     void loadItem(View itemContainer, View itemView, int position) {
-        AbsListView absListView = mManaged.getAbsListView();
-        Adapter adapter = absListView.getAdapter();
+        final AbsListView absListView = mManaged.getAbsListView();
+        final Adapter adapter = absListView.getAdapter();
 
-        boolean shouldDisplayItem =
+        final boolean shouldDisplayItem =
                 (mScrollState != OnScrollListener.SCROLL_STATE_FLING && !mPendingItemsUpdate);
 
         // This runs on each Adapter.getView() call. Will only trigger an
@@ -187,7 +187,7 @@ public final class ItemManager {
 
                 mHandler.removeMessages(MESSAGE_UPDATE_ITEMS);
 
-                int delay = (mFingerUp ? 0 : DELAY_SHOW_ITEMS);
+                final int delay = (mFingerUp ? 0 : DELAY_SHOW_ITEMS);
                 mHandler.sendMessageDelayed(msg, delay);
 
                 mPendingItemsUpdate = true;
@@ -198,7 +198,7 @@ public final class ItemManager {
 
             mScrollState = scrollState;
 
-            OnScrollListener l = mManaged.getOnScrollListener();
+            final OnScrollListener l = mManaged.getOnScrollListener();
             if (l != null) {
                 l.onScrollStateChanged(view, scrollState);
             }
@@ -207,7 +207,7 @@ public final class ItemManager {
         @Override
         public void onScroll(AbsListView view, int firstVisibleItem, int visibleItemCount,
                 int totalItemCount) {
-            OnScrollListener l = mManaged.getOnScrollListener();
+            final OnScrollListener l = mManaged.getOnScrollListener();
             if (l != null) {
                 l.onScroll(view, firstVisibleItem, visibleItemCount, totalItemCount);
             }
@@ -245,7 +245,7 @@ public final class ItemManager {
                 postUpdateItems();
             }
 
-            OnItemSelectedListener l = mManaged.getOnItemSelectedListener();
+            final OnItemSelectedListener l = mManaged.getOnItemSelectedListener();
             if (l != null) {
                 l.onItemSelected(adapterView, view, position, id);
             }
@@ -253,7 +253,7 @@ public final class ItemManager {
 
         @Override
         public void onNothingSelected(AdapterView<?> adapterView) {
-            OnItemSelectedListener l = mManaged.getOnItemSelectedListener();
+            final OnItemSelectedListener l = mManaged.getOnItemSelectedListener();
             if (l != null) {
                 l.onNothingSelected(adapterView);
             }
@@ -265,7 +265,7 @@ public final class ItemManager {
         public void handleMessage(Message msg) {
             switch (msg.what) {
                 case MESSAGE_UPDATE_ITEMS:
-                    ItemManager smoothie = (ItemManager) msg.obj;
+                    final ItemManager smoothie = (ItemManager) msg.obj;
                     smoothie.updateItems();
                     break;
             }
