@@ -2,5 +2,5 @@ apply plugin: 'android-library'
 
 android {
     compileSdkVersion 18
-    buildToolsVersion "19.0.0"
+    buildToolsVersion "19.0.1"
 }

@@ -11,5 +11,5 @@ dependencies {
 
 android {
     compileSdkVersion 16
-    buildToolsVersion "19.0.0"
+    buildToolsVersion "19.0.1"
 }
