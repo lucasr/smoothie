@@ -130,7 +130,7 @@ public final class ItemManager {
         absListView.invalidate();
     }
 
-    private void postUpdateItems() {
+    void postUpdateItems() {
         final Message msg = mHandler.obtainMessage(MESSAGE_UPDATE_ITEMS,
                                                    ItemManager.this);
 

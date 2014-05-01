@@ -89,6 +89,8 @@ class ItemManaged {
 
         mItemManager = itemManager;
         mInstallingManager = false;
+
+        triggerUpdate();
     }
 
     AbsListView getAbsListView() {
@@ -169,6 +171,12 @@ class ItemManaged {
             ((ListView) mAbsListView).setAdapter(adapter);
         } else if (mAbsListView instanceof GridView) {
             ((GridView) mAbsListView).setAdapter(adapter);
+        }
+    }
+
+    void triggerUpdate() {
+        if (hasItemManager() && mWrappedAdapter != null) {
+            mItemManager.postUpdateItems();
         }
     }
 }

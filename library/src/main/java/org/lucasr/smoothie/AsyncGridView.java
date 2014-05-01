@@ -109,5 +109,6 @@ public class AsyncGridView extends GridView implements AsyncAbsListView {
     @Override
     public void setAdapter(ListAdapter adapter) {
         super.setAdapter(mItemManaged.wrapAdapter(adapter));
+        mItemManaged.triggerUpdate();
     }
 }
