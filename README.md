@@ -51,6 +51,23 @@ fades images in as they finish loading on a ListView.
 
 The API docs contain a more detailed overview of the API.
 
+
+Download
+--------
+
+Grab via Maven:
+```xml
+<dependency>
+  <groupId>org.lucasr.smoothie</groupId>
+  <artifactId>smoothie</artifactId>
+  <version>0.1.0</version>
+</dependency>
+```
+or Gradle:
+```groovy
+compile 'org.lucasr.smoothie:smoothie:0.1.0'
+```
+
 Want to help?
 =============
 
