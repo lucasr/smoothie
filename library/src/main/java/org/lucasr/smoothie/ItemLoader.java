@@ -733,7 +733,7 @@ public abstract class ItemLoader<AnyAdapter, Params, Result> {
         private final boolean mFromMemory;
 
         public DisplayItemRunnable(ItemLoader<AnyAdapter, Params, Result> itemLoader,
-                                   ItemRequest<Params, Result> request, boolean fromMemory) {
+            ItemRequest<Params, Result> request, boolean fromMemory) {
             mItemLoader = itemLoader;
             mRequest = request;
             mFromMemory = fromMemory;
