@@ -28,7 +28,6 @@ import android.widget.Adapter;
 import android.widget.AdapterView;
 import android.widget.AdapterView.OnItemSelectedListener;
 import android.widget.ListAdapter;
-import android.widget.WrapperListAdapter;
 
 /**
  * <p>ItemManager ties the user interaction (scroll, touch,
@@ -56,7 +55,7 @@ public final class ItemManager {
 
     private ItemManaged mManaged;
 
-    private final ItemLoader<?, ?> mItemLoader;
+    private final ItemLoader<Adapter, ?, ?> mItemLoader;
     private final Handler mHandler;
 
     private final boolean mPreloadItemsEnabled;
@@ -67,7 +66,7 @@ public final class ItemManager {
     private boolean mPendingItemsUpdate;
     private boolean mFingerUp;
 
-    private ItemManager(ItemLoader<?, ?> itemLoader, boolean preloadItemsEnabled,
+    private ItemManager(ItemLoader<Adapter, ?, ?> itemLoader, boolean preloadItemsEnabled,
             int preloadItemsCount, int threadPoolSize) {
         mManaged = null;
 
@@ -285,7 +284,7 @@ public final class ItemManager {
         private static final int DEFAULT_PRELOAD_ITEMS_COUNT = 4;
         private static final int DEFAULT_THREAD_POOL_SIZE = 2;
 
-        private final ItemLoader<?, ?> mItemLoader;
+        private final ItemLoader<Adapter, ?, ?> mItemLoader;
 
         private boolean mPreloadItemsEnabled;
         private int mPreloadItemsCount;
@@ -294,7 +293,7 @@ public final class ItemManager {
         /**
          * @param itemLoader - Your {@link ItemLoader} subclass implementation.
          */
-        public Builder(ItemLoader<?, ?> itemLoader) {
+        public Builder(ItemLoader<Adapter, ?, ?> itemLoader) {
             mItemLoader = itemLoader;
 
             mPreloadItemsEnabled = DEFAULT_PRELOAD_ITEMS_ENABLED;

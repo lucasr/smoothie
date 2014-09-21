@@ -17,7 +17,7 @@ import android.widget.Adapter;
  *
  * @author Lucas Rocha <lucasr@lucasr.org>
  */
-public abstract class SimpleItemLoader<Params, Result> extends ItemLoader<Params, Result> {
+public abstract class SimpleItemLoader<Params, Result> extends ItemLoader<Adapter, Params, Result> {
     @Override
     final public int getItemPartCount(Adapter adapter, int position) {
         return 1;

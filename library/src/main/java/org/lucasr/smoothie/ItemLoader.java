@@ -34,8 +34,6 @@ import android.os.Process;
 import android.os.SystemClock;
 import android.util.Log;
 import android.view.View;
-import android.widget.Adapter;
-import android.widget.AdapterView;
 
 /**
  * {@code ItemLoader} is responsible for loading and displaying items
@@ -52,7 +50,7 @@ import android.widget.AdapterView;
  * <p>ItemLoader must be subclassed to be used. The subclass will override four
  * methods: {@link #loadItemPart(Object, int)}, @{@link #loadItemPartFromMemory(Object, int)},
  * {@link #displayItemPart(View, Object, int, boolean)}, and
- * {@link #getItemParams(Adapter, int)}.</p>
+ * {@link #getItemParams(AnyAdapter, int)}.</p>
  *
  * <p>Here is an example of subclassing:</p>
  * <pre>
@@ -117,7 +115,7 @@ import android.widget.AdapterView;
  * <h2>The 4 steps</h2>
  * <p>When an ItemLoader is in action, each item will go through 4 steps:</p>
  * <ol>
- *     <li>{@link #getItemParams(Adapter, int)}, invoked on the UI thread before the
+ *     <li>{@link #getItemParams(AnyAdapter, int)}, invoked on the UI thread before the
  *     item is loaded. This step should return all the parameters necessary for
  *     loading the item. This is necessary to avoid touching the Adapter in a
  *     background thread.</li>
@@ -141,7 +139,7 @@ import android.widget.AdapterView;
  *
  * <p>By default, {@link ItemLoader} handles single-part items but you can
  * make it handle multi-part items by overriding
- * {@link #getItemPartCount(Adapter, int, int)} and returning the number of parts
+ * {@link #getItemPartCount(AnyAdapter, int)} and returning the number of parts
  * a given position in the Adapter has. Then you should handle the {@code itemPart}
  * argument in {@link #loadItemPartFromMemory(Object, int)},
  * {@link #loadItemPart(Object, int)}, and {@link #displayItemPart(View, Object, int, boolean)}
@@ -178,13 +176,13 @@ import android.widget.AdapterView;
  * {@code Result} type if that's the only way to achieve this.</p>
  *
  * <p>You can disable preloading on specific item parts by overriding
- * {@link #shouldPreloadItemPart(Adapter, int, int)}. Preloading is enabled for
+ * {@link #shouldPreloadItemPart(AnyAdapter, int, int)}. Preloading is enabled for
  * all item parts by default.
  *
  * <h2>ItemLoader and Adapter</h2>
  * <p>Once you have an {@link ItemManager} set in an {@link AsyncListView} or
  * {@link AsyncGridView}, your Adapter will behave exactly the same. In your
- * {@link android.widget.Adapter #getView(int, View, android.view.ViewGroup)},
+ * {@link AnyAdapter #getView(int, View, android.view.ViewGroup)},
  * you should display all the elements that are directly available from the
  * Adapter's backing data. e.g. the backing data structure or database
  * Cursor.</p>
@@ -194,7 +192,7 @@ import android.widget.AdapterView;
  * the cloud or loading files from disk.</p>
  *
  * <p>It's assumed that your
- * {@link android.widget.Adapter #getView(int, View, android.view.ViewGroup)}
+ * {@link AnyAdapter #getView(int, View, android.view.ViewGroup)}
  * will reset the item view to placeholder state regarding the data that
  * the ItemLoader will load. For example, if your item has images that will
  * be loaded asynchronously, your adapter should set the placeholder state
@@ -213,9 +211,10 @@ import android.widget.AdapterView;
  *
  * @author Lucas Rocha <lucasr@lucasr.org>
  */
-public abstract class ItemLoader<Params, Result> {
+public abstract class ItemLoader<AnyAdapter, Params, Result> {
     private static final String LOGTAG = "SmoothieItemLoader";
     private static final boolean ENABLE_LOGGING = false;
+    private static final int INVALID_POSITION = -1;
 
     private Handler mHandler;
     private Map<View, ItemState<Params>> mItemStates;
@@ -232,11 +231,11 @@ public abstract class ItemLoader<Params, Result> {
         mHandler = handler;
         mItemStates = Collections.synchronizedMap(new WeakHashMap<View, ItemState<Params>>());
         mItemRequests = new ConcurrentHashMap<String, ItemRequest<Params, Result>>(8, 0.9f, 1);
-        mExecutorService = new ItemsThreadPoolExecutor<Params, Result>(threadPoolSize, threadPoolSize, 60,
+        mExecutorService = new ItemsThreadPoolExecutor<AnyAdapter, Params, Result>(threadPoolSize, threadPoolSize, 60,
                 TimeUnit.SECONDS, new PriorityBlockingQueue<Runnable>());
     }
 
-    void performDisplayItem(View itemContainer, Adapter adapter, View itemView, long timestamp) {
+    void performDisplayItem(View itemContainer, AnyAdapter adapter, View itemView, long timestamp) {
         final ItemState<Params> itemState = getItemState(itemView);
         if (!itemState.shouldLoadItem) {
             if (ENABLE_LOGGING) {
@@ -256,7 +255,7 @@ public abstract class ItemLoader<Params, Result> {
         }
 
         final int position = itemState.position;
-        if (position == AdapterView.INVALID_POSITION) {
+        if (position == INVALID_POSITION) {
             if (ENABLE_LOGGING) {
                 Log.d(LOGTAG, "Undefined position, bailing");
             }
@@ -312,15 +311,15 @@ public abstract class ItemLoader<Params, Result> {
             // The item is in memory, no need to asynchronously load it
             // Run the final item display routine straight away.
             request.result = new SoftReference<Result>(result);
-            mHandler.post(new DisplayItemRunnable<Params, Result>(this, request, true));
+            mHandler.post(new DisplayItemRunnable<AnyAdapter, Params, Result>(this, request, true));
 
             return;
         }
 
-        request.loadItemTask = mExecutorService.submit(new LoadItemRunnable<Params, Result>(this, request));
+        request.loadItemTask = mExecutorService.submit(new LoadItemRunnable<AnyAdapter, Params, Result>(this, request));
     }
 
-    void performLoadItem(View itemContainer, View itemView, Adapter adapter, int position, boolean shouldDisplayItem) {
+    void performLoadItem(View itemContainer, View itemView, AnyAdapter adapter, int position, boolean shouldDisplayItem) {
         // Loader returned no parameters for the item, just bail
         final Params itemParams = getItemParams(adapter, position);
         if (itemParams == null) {
@@ -342,7 +341,7 @@ public abstract class ItemLoader<Params, Result> {
         }
     }
 
-    void performPreloadItem(View itemContainer, Adapter adapter, int position, long timestamp) {
+    void performPreloadItem(View itemContainer, AnyAdapter adapter, int position, long timestamp) {
         final Params itemParams = getItemParams(adapter, position);
         if (itemParams == null) {
             return;
@@ -359,7 +358,7 @@ public abstract class ItemLoader<Params, Result> {
         }
     }
 
-    private void performPreloadItemPart(View itemContainer, Params itemParams, Adapter adapter, int position,
+    private void performPreloadItemPart(View itemContainer, Params itemParams, AnyAdapter adapter, int position,
             int itemPart, long timestamp) {
         // If item is memory, just cancel any pending requests for
         // this item and return as the item has already been loaded.
@@ -383,7 +382,7 @@ public abstract class ItemLoader<Params, Result> {
             request = new ItemRequest<Params, Result>(id, itemContainer, itemParams, position, itemPart, timestamp);
             mItemRequests.put(id, request);
 
-            request.loadItemTask = mExecutorService.submit(new LoadItemRunnable<Params, Result>(this, request));
+            request.loadItemTask = mExecutorService.submit(new LoadItemRunnable<AnyAdapter, Params, Result>(this, request));
         } else {
             if (ENABLE_LOGGING) {
                 Log.d(LOGTAG, "(Preload) There's a pending item request, reusing: " + id);
@@ -402,7 +401,7 @@ public abstract class ItemLoader<Params, Result> {
     }
 
     void cancelObsoleteRequests(long timestamp) {
-        for (Iterator<ItemRequest<Params, Result>> i = mItemRequests.values().iterator(); i.hasNext();) {
+        for (Iterator<ItemRequest<Params, Result>> i = mItemRequests.values().iterator(); i.hasNext(); ) {
             final ItemRequest<Params, Result> request = i.next();
 
             if (request.timestamp < timestamp) {
@@ -427,7 +426,7 @@ public abstract class ItemLoader<Params, Result> {
             throw new IllegalArgumentException("Null itemContainer in cancelRequestsForContainer");
         }
 
-        for (Iterator<ItemRequest<Params, Result>> i = mItemRequests.values().iterator(); i.hasNext();) {
+        for (Iterator<ItemRequest<Params, Result>> i = mItemRequests.values().iterator(); i.hasNext(); ) {
             final ItemRequest<Params, Result> request = i.next();
             final View requestContainer = request.itemContainer.get();
 
@@ -452,7 +451,7 @@ public abstract class ItemLoader<Params, Result> {
             itemState = new ItemState<Params>();
             itemState.itemParams = null;
             itemState.shouldLoadItem = false;
-            itemState.position = AdapterView.INVALID_POSITION;
+            itemState.position = INVALID_POSITION;
 
             mItemStates.put(itemView, itemState);
         }
@@ -496,7 +495,7 @@ public abstract class ItemLoader<Params, Result> {
         // in the matching request, this means the view has been recycled to
         // display something else.
         final int position = getItemState(itemView).position;
-        if (position == AdapterView.INVALID_POSITION || request.position != position) {
+        if (position == INVALID_POSITION || request.position != position) {
             return true;
         }
 
@@ -507,14 +506,13 @@ public abstract class ItemLoader<Params, Result> {
      * Override this method if your {@link ItemLoader} has to deal with
      * multi-part items.
      *
-     * @param adapter - The {@link Adapter} associated with the target
-     *        {@link AsyncListView} or {@link AsyncGridView}.
-     * @param position - The position in the Adapter from which the
+     * @param adapter - The adapter associated with the target - implementation agnostic.
+     * @param position - The position in the adapter from which the
      *        number of parts should be retrieved.
      *
      * @return The number of parts the item in the given position contains.
      */
-    public int getItemPartCount(Adapter adapter, int position) {
+    public int getItemPartCount(AnyAdapter adapter, int position) {
         return 1;
     }
 
@@ -522,9 +520,8 @@ public abstract class ItemLoader<Params, Result> {
      * Override this method if you want to disable preloading for specific
      * item parts.
      *
-     * @param adapter - The {@link Adapter} associated with the target
-     *        {@link AsyncListView} or {@link AsyncGridView}.
-     * @param position - The position in the Adapter from which the
+     * @param adapter - The adapter associated with the target - implementation agnostic.
+     * @param position - The position in the adapter from which the
      *        number of parts should be retrieved.
      * @param itemPart - The item part for which preloading should be enabled
      *                   or disabled.
@@ -534,7 +531,7 @@ public abstract class ItemLoader<Params, Result> {
      *
      * @see ItemManager.Builder#setPreloadItemsEnabled(boolean)
      */
-    public boolean shouldPreloadItemPart(Adapter adapter, int position, int itemPart) {
+    public boolean shouldPreloadItemPart(AnyAdapter adapter, int position, int itemPart) {
         return true;
     }
 
@@ -542,15 +539,14 @@ public abstract class ItemLoader<Params, Result> {
      * Retrieves the necessary parameters to load the item's data. This
      * method is called in the UI thread.
      *
-     * @param adapter - The {@link Adapter} associated with the target
-     *        {@link AsyncListView} or {@link AsyncGridView}.
-     * @param position - The position in the Adapter from which the
+     * @param adapter - The adapter associated with the target - implementation agnostic.
+     * @param position - The position in the adapter from which the
      *        parameters should be retrieved.
      *
      * @return The parameters necessary to load an item which will be
      *         passed to {@link #loadItemPart(Object, int)}.
      */
-    public abstract Params getItemParams(Adapter adapter, int position);
+    public abstract Params getItemParams(AnyAdapter adapter, int position);
 
     /**
      * Loads the item data. This method is called in a background thread.
@@ -558,7 +554,7 @@ public abstract class ItemLoader<Params, Result> {
      * implementation.
      *
      * @param itemParams - The parameters generated by
-     *        {@link #getItemParams(Adapter, int)}.
+     *        {@link #getItemParams(AnyAdapter, int)}.
      * @param itemPart - The target item part to be loaded.
      *
      * @return The loaded item data.
@@ -582,8 +578,8 @@ public abstract class ItemLoader<Params, Result> {
      * Displays the loaded item data in the target view. This method is called
      * in the UI thread.
      *
-     * @param itemView - The target item view returned by your Adapter's
-     *        {@link android.widget.Adapter #getView(int, View, android.view.ViewGroup)}
+     * @param itemView   - The target item view returned by your Adapter's
+     *        {@link AnyAdapter #getView(int, View, android.view.ViewGroup)}
      *        implementation.
      * @param result - The item data loaded from {@link #loadItemPart(Object, int)} or
      *        {@link #loadItemPartFromMemory(Object)}.
@@ -626,7 +622,7 @@ public abstract class ItemLoader<Params, Result> {
         }
     }
 
-    private static final class ItemsThreadPoolExecutor<Params, Result> extends ThreadPoolExecutor {
+    private static final class ItemsThreadPoolExecutor<AnyAdapter, Params, Result> extends ThreadPoolExecutor {
         public ItemsThreadPoolExecutor(int corePoolSize, int maximumPoolSize,
                 long keepAliveTime, TimeUnit unit, BlockingQueue<Runnable> workQueue) {
             super(corePoolSize, maximumPoolSize, keepAliveTime, unit, workQueue);
@@ -639,25 +635,25 @@ public abstract class ItemLoader<Params, Result> {
             }
 
             @SuppressWarnings("unchecked")
-            LoadItemFutureTask<Params, Result> ftask =
-                    new LoadItemFutureTask<Params, Result>((LoadItemRunnable<Params, Result>) task);
+            LoadItemFutureTask<AnyAdapter, Params, Result> ftask =
+                    new LoadItemFutureTask<AnyAdapter, Params, Result>((LoadItemRunnable<AnyAdapter, Params, Result>) task);
 
             execute(ftask);
             return ftask;
         }
     }
 
-    private static final class LoadItemFutureTask<Params, Result> extends FutureTask<LoadItemRunnable<Params, Result>>
-            implements Comparable<LoadItemFutureTask<Params, Result>> {
-        private final LoadItemRunnable<Params, Result> mRunnable;
+    private static final class LoadItemFutureTask<AnyAdapter, Params, Result> extends FutureTask<LoadItemRunnable<AnyAdapter, Params, Result>>
+            implements Comparable<LoadItemFutureTask<AnyAdapter, Params, Result>> {
+        private final LoadItemRunnable<AnyAdapter, Params, Result> mRunnable;
 
-        public LoadItemFutureTask(LoadItemRunnable<Params, Result> runnable) {
+        public LoadItemFutureTask(LoadItemRunnable<AnyAdapter, Params, Result> runnable) {
             super(runnable, null);
             mRunnable = runnable;
         }
 
         @Override
-        public int compareTo(LoadItemFutureTask<Params, Result> another) {
+        public int compareTo(LoadItemFutureTask<AnyAdapter, Params, Result> another) {
             ItemRequest<Params, Result> r1 = mRunnable.getItemRequest();
             ItemRequest<Params, Result> r2 = another.mRunnable.getItemRequest();
 
@@ -680,11 +676,11 @@ public abstract class ItemLoader<Params, Result> {
         }
     }
 
-    private static final class LoadItemRunnable<Params, Result> implements Runnable {
-        private final ItemLoader<Params, Result> mItemLoader;
+    private static final class LoadItemRunnable<AnyAdapter, Params, Result> implements Runnable {
+        private final ItemLoader<AnyAdapter, Params, Result> mItemLoader;
         private final ItemRequest<Params, Result> mRequest;
 
-        public LoadItemRunnable(ItemLoader<Params, Result> itemLoader, ItemRequest<Params, Result> request) {
+        public LoadItemRunnable(ItemLoader<AnyAdapter, Params, Result> itemLoader, ItemRequest<Params, Result> request) {
             mItemLoader = itemLoader;
             mRequest = request;
         }
@@ -721,7 +717,7 @@ public abstract class ItemLoader<Params, Result> {
                 }
 
                 // Item is now loaded, run the display routine
-                mItemLoader.mHandler.post(new DisplayItemRunnable<Params, Result>(mItemLoader, mRequest, false));
+                mItemLoader.mHandler.post(new DisplayItemRunnable<AnyAdapter, Params, Result>(mItemLoader, mRequest, false));
             } else {
                 // This is just a preload request, we're done here
                 if (ENABLE_LOGGING) {
@@ -731,13 +727,13 @@ public abstract class ItemLoader<Params, Result> {
         }
     }
 
-    private static final class DisplayItemRunnable<Params, Result> implements Runnable {
-        private final ItemLoader<Params, Result> mItemLoader;
+    private static final class DisplayItemRunnable<AnyAdapter, Params, Result> implements Runnable {
+        private final ItemLoader<AnyAdapter, Params, Result> mItemLoader;
         private final ItemRequest<Params, Result> mRequest;
         private final boolean mFromMemory;
 
-        public DisplayItemRunnable(ItemLoader<Params, Result> itemLoader,
-                ItemRequest<Params, Result> request, boolean fromMemory) {
+        public DisplayItemRunnable(ItemLoader<AnyAdapter, Params, Result> itemLoader,
+                                   ItemRequest<Params, Result> request, boolean fromMemory) {
             mItemLoader = itemLoader;
             mRequest = request;
             mFromMemory = fromMemory;
